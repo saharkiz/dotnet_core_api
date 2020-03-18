@@ -278,6 +278,197 @@ namespace myvapi.Controllers
                 return BadRequest();
             }
         }
+
+
+
+
+
+
+///Category for All
+        [HttpGet("category/{category}/{language}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult category(string category, string language, int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@category",category),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and Category like '%'+@category+'%') v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///Category for the loggedin User
+        [HttpGet("category/{category}/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult categoryuser(string category, string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@category",category),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and Category like '%'+@category+'%') v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///Related Video for All
+        [HttpGet("related/{vidid}/{language}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult relatedVideo(string vidid, string language, int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@vidid",vidid),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///Related Video for the loggedin User
+        [HttpGet("related/{vidid}/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult relatedVideouser(string vidid, string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@vidid",vidid),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///Most View Video for All
+        [HttpGet("view/{language}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult MostViewVideo(string vidid, string language, int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY Views desc) rowNumber,
+                    CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///Most View Video for the loggedin User
+        [HttpGet("view/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult MostViewVideouser(string vidid, string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@vidid",vidid),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY Views desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
 //upload video 
         [HttpPost("upload/{user}")]
         [Authorize]
@@ -340,12 +531,29 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
-
 //search video
 //like video  
         [HttpGet("like/{vid}")]
         [AllowAnonymous]
         public ActionResult Like(string vid)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@id",vid),
+                };
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
+                @"UPDATE vs_entry_details SET Likes = isnull(Likes,0) + 1  WHERE Id = @id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///like video user
+        [HttpGet("like/{vid}/{user}")]
+        [AllowAnonymous]
+        public ActionResult LikeUser(string vid, string user)
         {
             try{
                 SqlParameter[] param = {
@@ -380,9 +588,29 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
-        ///get comment list
-        [HttpGet("comment/{vid}/{user}")]
+//comment on video user
+        [HttpGet("comment/list/{vid}/{user}")]
         [AllowAnonymous]
+        public ActionResult commentListUser(string vid,string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@title",vid),
+                };
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
+                @"elect (select first_name from t_Members where id=cl.CreatedBy) as CreatedBy,
+                Comment,CreatedOn,CreatedBy as UserId,Id from View_CommentList cl where referenceid=@title 
+                and parentid is null and IsVisible=1  order by runningNum desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///get comment list
+        [HttpGet("comment/{vid}/{user}")]
+        [Authorize]
         public ActionResult CommentVideo([FromBody]Dictionary<string, object> model, string vid, string user)
         {
             try{
