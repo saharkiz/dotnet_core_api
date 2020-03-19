@@ -114,8 +114,7 @@ namespace myvapi.Controllers
                 };
 
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"
-                    SELECT * FROM 
+                @"SELECT * FROM 
                     (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
                     CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
                     * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
@@ -158,6 +157,68 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+///List of all videos tag by language
+        [HttpGet("tag/{tag}/{language}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult tagvideo(string tag, string language, int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@tags",tag),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and tags like '%'+@tag+'%') v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///List of all videos tag by language of user
+        [HttpGet("tag/{tag}/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult videotaguser(string tag, string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                    new SqlParameter("@tags",tag),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"
+                    SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and tags like '%'+@tag+'%') v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
 ///Highlights for All
         [HttpGet("highlight/{language}/{page}/{count}")]
         [AllowAnonymous]
@@ -278,12 +339,6 @@ namespace myvapi.Controllers
                 return BadRequest();
             }
         }
-
-
-
-
-
-
 ///Category for All
         [HttpGet("category/{category}/{language}/{page}/{count}")]
         [AllowAnonymous]
@@ -411,7 +466,7 @@ namespace myvapi.Controllers
 ///Most View Video for All
         [HttpGet("view/{language}/{page}/{count}")]
         [AllowAnonymous]
-        public ActionResult MostViewVideo(string vidid, string language, int page, int count)
+        public ActionResult MostViewVideo(string language, int page, int count)
         {
             try{
                 int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
@@ -441,7 +496,7 @@ namespace myvapi.Controllers
 ///Most View Video for the loggedin User
         [HttpGet("view/{language}/{page}/{count}/{user}")]
         [Authorize]
-        public ActionResult MostViewVideouser(string vidid, string language, int page, int count, string user)
+        public ActionResult MostViewVideouser(string language, int page, int count, string user)
         {
             try{
                 int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
@@ -451,7 +506,6 @@ namespace myvapi.Controllers
                     new SqlParameter("@start",start),
                     new SqlParameter("@end",end),
                     new SqlParameter("@language",language),
-                    new SqlParameter("@vidid",vidid),
                 };
 
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
@@ -577,28 +631,28 @@ namespace myvapi.Controllers
                 SqlParameter[] param = {
                     new SqlParameter("@title",vid),
                 };
-                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
-                @"elect (select first_name from t_Members where id=cl.CreatedBy) as CreatedBy,
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                @"select (select first_name from DBF_V_Members.dbo.t_Members where id=cl.CreatedBy) as CreatedBy,
                 Comment,CreatedOn,CreatedBy as UserId,Id from View_CommentList cl where referenceid=@title 
                 and parentid is null and IsVisible=1  order by runningNum desc", param);
                 return Ok(lst);
             }
-            catch(Exception)
+            catch(Exception ex)
             {
-                return BadRequest(new {error = "Request Terminated!" });
+                return BadRequest(new {error = "Request Terminated!"+ ex.ToString() });
             }
         }
 //comment on video user
         [HttpGet("comment/list/{vid}/{user}")]
-        [AllowAnonymous]
+        [Authorize]
         public ActionResult commentListUser(string vid,string user)
         {
             try{
                 SqlParameter[] param = {
                     new SqlParameter("@title",vid),
                 };
-                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
-                @"elect (select first_name from t_Members where id=cl.CreatedBy) as CreatedBy,
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                @"select (select first_name from DBF_V_Members.dbo.t_Members where id=cl.CreatedBy) as CreatedBy,
                 Comment,CreatedOn,CreatedBy as UserId,Id from View_CommentList cl where referenceid=@title 
                 and parentid is null and IsVisible=1  order by runningNum desc", param);
                 return Ok(lst);
@@ -620,11 +674,44 @@ namespace myvapi.Controllers
                     new SqlParameter("@CreatedBy",user),
                     new SqlParameter("@ctype","video"),
                 };
-                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VShop, 
                     @"INSERT INTO t_Comments 
                     (ReferenceId,Comment,CreatedBy,CreatedOn,CommentType) 
                     VALUES  (@Refid,@Comment, @CreatedBy, GETDATE(),@ctype)", param);
                 return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///search video
+        [HttpGet("search/{type}")]
+        [AllowAnonymous]
+        public ActionResult search([FromBody] Dictionary<string, object> obj, string searchtype)
+        {
+            try{
+                string keyword = obj["search"].ToString();
+                string searchWord = keyword.Replace(",", "").Replace("'", "").Replace("’", "");
+
+                SqlParameter[] param = {
+                    new SqlParameter("@SearchKey",searchWord),
+                    new SqlParameter("@Type",searchtype),
+                };
+                var resulttable = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.Vtube,"sp_SearchResult",param);
+                if (resulttable.Count > 0)
+                {
+                    SqlParameter[] paramresult = {
+                        new SqlParameter("@table",resulttable),
+                        new SqlParameter("@Type",searchtype),
+                        new SqlParameter("@orderby","latest"),
+                    };
+                    var result = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.Vtube,"sp_Results",paramresult);
+                    return Ok(result);
+                }
+                else{
+                    return NotFound();
+                }
             }
             catch(Exception)
             {
