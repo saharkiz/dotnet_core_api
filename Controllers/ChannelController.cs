@@ -156,10 +156,210 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+///channels most viewed
+        [HttpGet("view/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult mostViewChannel(int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
 
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY views desc) rowNumber,* FROM View_ChannelList_API) c
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
 ///channel videos
+        [HttpGet("video/list/{channel}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult videoList(string channel, int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@title",channel),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    '' as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and (cast(ChannelId as varchar(10))=@title or ChannelName=@title)) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///channel videos by user
+        [HttpGet("video/list/{channel}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult videoListUser(string channel, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@title",channel),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and (cast(ChannelId as varchar(10))=@title or ChannelName=@title)) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
 ///channel by category
 ///channel following
+        [HttpGet("following/list/{channel}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult following(string channel, int page, int count)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@title",channel),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* from View_FollowList_API where 
+                    is_approved=1 and (channelname=@title or cast(channelid as varchar(10))=@title)) p
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
+///channel followers
+        [HttpGet("followers/list/{channel}/{page}/{count}")]
+        [AllowAnonymous]
+        public ActionResult followers(string channel, int page, int count)
+        {
+            try{
+                
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@title",channel),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* from View_FollowList_API where 
+                    is_approved=1 and (channelname=@title or cast(channelid as varchar(10))=@title)) p
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+//comment on channel
+        [HttpGet("comment/list/{channel}")]
+        [AllowAnonymous]
+        public ActionResult commentList(string channel)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@title",channel),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                @"select (select first_name from DBF_V_Members.dbo.t_Members where id=cl.CreatedBy) as CreatedBy,
+                Comment,CreatedOn,CreatedBy as UserId,Id from View_CommentList cl where referenceid=@title 
+                and parentid is null and IsVisible=1  order by runningNum desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+//comment on channel user
+        [HttpGet("comment/list/{channel}/{user}")]
+        [Authorize]
+        public ActionResult commentListUser(string channel,string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@title",channel),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                @"select (select first_name from DBF_V_Members.dbo.t_Members where id=cl.CreatedBy) as CreatedBy,
+                Comment,CreatedOn,CreatedBy as UserId,Id from View_CommentList cl where referenceid=@title 
+                and parentid is null and IsVisible=1  order by runningNum desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///get comment list
+        [HttpGet("comment/{channel}/{user}")]
+        [Authorize]
+        public ActionResult CommentVideo([FromBody]Dictionary<string, object> model, string channel, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@id",channel),
+                    new SqlParameter("@Comment",model["comment"].ToString()),
+                    new SqlParameter("@CreatedBy",user),
+                    new SqlParameter("@ctype","channel"),
+                };
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VShop, 
+                    @"INSERT INTO t_Comments 
+                    (ReferenceId,Comment,CreatedBy,CreatedOn,CommentType) 
+                    VALUES  (@Refid,@Comment, @CreatedBy, GETDATE(),@ctype)", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
 
     }
 }
