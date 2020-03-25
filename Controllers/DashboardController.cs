@@ -193,5 +193,290 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+//Create channel
+        [HttpPost("create/channel/{user}")]
+        [Authorize]
+        public ActionResult createchannel([FromBody]Dictionary<string, object> model, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@name",model["name"].ToString()),
+                    new SqlParameter("@access_type",model["access_type"].ToString()),
+                    new SqlParameter("@user_id",user),
+                    new SqlParameter("@description",model["description"].ToString()),
+                    new SqlParameter("@is_comment_allowed",model["is_comment_allowed"].ToString()),
+                    new SqlParameter("@is_rate_allowed",model["is_rate_allowed"].ToString()),
+                };
+
+                var lst = SqlHelper.ExecuteProcedureReturnString(appSettings.Value.Vtube, 
+                @"sp_Channel_Create", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+//Remove channel
+        [HttpPost("remove/channel/{user}")]
+        [Authorize]
+        public ActionResult removechannel([FromBody]Dictionary<string, object> model, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                    new SqlParameter("@id",model["channel_id"].ToString()),
+                };
+
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
+                @"UPDATE vs_channel SET delete_date=GETDATE(), access_type='DELETED'  WHERE Id = @id  and user_id=@user_id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+//Update channel
+        [HttpPost("update/channel/{user}")]
+        [Authorize]
+        public ActionResult updatechannel([FromBody]Dictionary<string, object> model, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                    new SqlParameter("@name",model["name"].ToString()),
+                    new SqlParameter("@access_type",model["access_type"].ToString()),
+                    new SqlParameter("@description",model["description"].ToString()),
+                    new SqlParameter("@is_comment_allowed",model["is_comment_allowed"].ToString()),
+                    new SqlParameter("@id",model["channel_id"].ToString()),
+                };
+
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
+                @"UPDATE vs_channel SET access_type = @access_type,name = @name,description = @description,
+                is_comment_allowed = @is_comment_allowed,update_date = getdate() WHERE id = @id and user_id=@user_id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }    
+//Remove Video
+        [HttpPost("remove/video/{user}")]
+        [Authorize]
+        public ActionResult removevideo([FromBody]Dictionary<string, object> model, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                    new SqlParameter("@id",model["video_id"].ToString()),
+                };
+
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.Vtube, 
+                @"UPDATE vs_entry_details SET isApproved=0  WHERE Id = @id and createdBy=@user_id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+//upload User Avatar 
+        [HttpPost("upload/avatar/{user}")]
+        [Authorize]
+        public ActionResult uploadavatar([FromForm(Name = "files")] List<IFormFile> files, string user)
+        {
+            try{
+            string subDirectory = "upload";
+            var target = Path.Combine(Environment.CurrentDirectory, subDirectory);
+            var filePath = "";
+            string finalFileName = "";
+            Directory.CreateDirectory(target);
+
+            files.ForEach(async file =>
+            {
+                if (file.Length <= 0) return;
+                String ret = Regex.Replace(file.FileName.Trim(), "[^A-Za-z0-9.]+", "");
+                finalFileName = user + "_avatar_" + ret.Replace(" ", String.Empty);
+                filePath = Path.Combine(target,  finalFileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+            });
+            return Ok(new {filename= finalFileName,Statuscode="Completed Upload" , files.Count, Size = SqlHelper.SizeConverter(files[0].Length) });
+            }
+            catch(Exception)
+            {
+                return NotFound(new {error = "Upload Terminated!" });
+            }
+        } 
+//Update Billing information
+        [HttpPost("update/billing/{user}")]
+        [Authorize]
+        public ActionResult updatebilling([FromBody]Dictionary<string, object> model, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                    new SqlParameter("@billing_address1",model["billing_address1"].ToString()),
+                    new SqlParameter("@billing_city",model["billing_city"].ToString()),
+                    new SqlParameter("@billing_state_region",model["billing_state_region"].ToString()),
+                    new SqlParameter("@billing_country",model["billing_country"].ToString()),
+                    new SqlParameter("@billing_postal_code",model["billing_postal_code"].ToString()),
+                    new SqlParameter("@billing_email",model["billing_email"].ToString()),
+                    new SqlParameter("@billing_phone_number",model["billing_phone_number"].ToString()),
+                    new SqlParameter("@shipping_address1",model["shipping_address1"].ToString()),
+                    new SqlParameter("@shipping_city",model["shipping_city"].ToString()),
+                    new SqlParameter("@shipping_state_region",model["shipping_state_region"].ToString()),
+                    new SqlParameter("@shipping_country",model["shipping_country"].ToString()),
+                    new SqlParameter("@shipping_postal_code",model["shipping_postal_code"].ToString()),
+                    new SqlParameter("@shipping_email",model["shipping_email"].ToString()),
+                    new SqlParameter("@shipping_phone_number",model["shipping_phone_number"].ToString()),
+                };
+
+                var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                @"UPDATE [t_Members]
+                    SET [billing_address1] = @billing_address1, 
+                        [billing_city] = @billing_city, 
+                        [billing_state_region] = @billing_state_region, 
+                        [billing_country] = @billing_country, 
+                        [billing_postal_code] = @billing_postal_code, 
+                        [billing_email] = @billing_email, 
+                        [billing_phone_number] = @billing_phone_number, 
+                        [shipping_address1] = @shipping_address1,
+                        [shipping_city] = @shipping_city, 
+                        [shipping_state_region] = @shipping_state_region, 
+                        [shipping_country] = @shipping_country, 
+                        [shipping_postal_code] = @shipping_postal_code, 
+                        [shipping_email] = @shipping_email,
+                        [shipping_phone_number] = @shipping_phone_number
+                    WHERE id = @user_id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }    
+///follower requests
+        [HttpGet("follower/request/{user}")]
+        [Authorize]
+        public ActionResult followerrequest(string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"select distinct * from view_UserFollowerRequest where userid=@user_id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///point history
+        [HttpGet("point/history/{user}")]
+        [Authorize]
+        public ActionResult pointhistory(string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                @"SELECT *, isnull(description,activity) activitydesc FROM t_PointHistory WHERE Userid = @user_id order by CreatedOn desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///inbox
+        [HttpGet("inbox/list/{user}")]
+        [Authorize]
+        public ActionResult inboxlist(string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VMembers, 
+                @"SELECT * FROM [View_t_messages] where Userid = @user_id order by CreatedOn desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///inbox item
+        [HttpGet("inbox/{item}/{user}")]
+        [Authorize]
+        public ActionResult inboxitem(string item, string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                    new SqlParameter("@id",item),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VMembers, 
+                @"SELECT * FROM [View_t_messages] where Userid = @user_id and id=@id order by CreatedOn desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///user channel
+        [HttpGet("channel/list/{user}")]
+        [Authorize]
+        public ActionResult userchannel(string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM View_ChannelList_API where user_id = @user_id order by CreatedOn desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+///user videos
+        [HttpGet("video/list/{user}")]
+        [Authorize]
+        public ActionResult uservideo(string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@user_id",user),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"select * from view_UserMyVideos where userid=@user_id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
+
+
     }
 }
