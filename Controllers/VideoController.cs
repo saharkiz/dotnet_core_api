@@ -65,7 +65,7 @@ namespace myvapi.Controllers
                     new SqlParameter("@idorname",vid),
                 };
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"select TOP 1 * from View_VideoList_API where premium<>'private' and (id=@idorname or name=@idorname)", param);
+                @"select TOP 1 * from View_VideoList_API where videoprivacy='public' and (id=@idorname or name=@idorname)", param);
                 return Ok(lst);
             }
             catch(Exception)
@@ -177,7 +177,7 @@ namespace myvapi.Controllers
                 @"SELECT * FROM 
                     (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
                     CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
-                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and tags like '%'+@tag+'%') v
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and tags like '%'+@tags+'%') v
                     WHERE rowNumber between @start and @end
                     order by rowNumber", param);
                 return Ok(lst);
@@ -208,7 +208,7 @@ namespace myvapi.Controllers
                     SELECT * FROM 
                     (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
                     videoUrlReal as videoUrl,
-                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and tags like '%'+@tag+'%') v
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0 and tags like '%'+@tags+'%') v
                     WHERE rowNumber between @start and @end
                     order by rowNumber", param);
                 return Ok(lst);
@@ -622,7 +622,7 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
-//comment on video
+//get comment list
         [HttpGet("comment/list/{vid}")]
         [AllowAnonymous]
         public ActionResult commentList(string vid)
@@ -642,7 +642,7 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!"+ ex.ToString() });
             }
         }
-//comment on video user
+//get comment list
         [HttpGet("comment/list/{vid}/{user}")]
         [Authorize]
         public ActionResult commentListUser(string vid,string user)
@@ -662,8 +662,8 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
-///get comment list
-        [HttpGet("comment/{vid}/{user}")]
+///comment on video user
+        [HttpPost("comment/{vid}/{user}")]
         [Authorize]
         public ActionResult CommentVideo([FromBody]Dictionary<string, object> model, string vid, string user)
         {

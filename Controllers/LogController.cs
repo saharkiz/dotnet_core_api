@@ -19,6 +19,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using MailKit.Net.Smtp;
 
 namespace myvapi.Controllers
 {
@@ -42,8 +43,8 @@ namespace myvapi.Controllers
             }
             else
             {
-                ViewBag.msg = "";
-                ViewBag.css = "";
+                ViewBag.msg = "Enter your username and password to sign in. You will be redirect back upon successful sign in.";
+                ViewBag.css = "alert";
             }
             return View("index");
         }
@@ -81,7 +82,7 @@ namespace myvapi.Controllers
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var finalToken = tokenHandler.WriteToken(token);
 
-                var output = new {ver=3.14, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
+                var output = new {ver=3.141, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
                 //return Ok(output);
                 return Redirect("http://vtube.net?token="+ finalToken + "&aud="+tokenuser);
             }
@@ -90,6 +91,18 @@ namespace myvapi.Controllers
                 return BadRequest(new { message = "Invalid Parameters" });
             }
         }
+
+        [HttpPost("forgotpassword")]
+        [AllowAnonymous]
+        public IActionResult forgotpassword([FromForm]FormModel model)
+        {
+            var message = new Message(new string[] { "s.aresh@yahoo.com" }, "Test email", "This is the content from our email.");
+            EmailConfiguration _mailconfig = new EmailConfiguration(); 
+            EmailSender _emailSender = new EmailSender(_mailconfig);
+            _emailSender.SendEmail(message);
+            return Ok("sending Email");
+        }
+
     }
     public class FormModel
     {

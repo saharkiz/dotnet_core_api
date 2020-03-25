@@ -337,7 +337,7 @@ namespace myvapi.Controllers
             }
         }
 ///get comment list
-        [HttpGet("comment/{channel}/{user}")]
+        [HttpPost("comment/{channel}/{user}")]
         [Authorize]
         public ActionResult CommentVideo([FromBody]Dictionary<string, object> model, string channel, string user)
         {
