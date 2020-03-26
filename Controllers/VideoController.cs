@@ -718,7 +718,180 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+///premium recommended
+        [HttpGet("premium/recommend/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult premiumrecommend(string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
 
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_premium where isapproved=1 and CHARINDEX(@language,[language]) > 0 and is_recommended=1) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
+///premium view
+        [HttpGet("premium/view/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult premiumview(string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY views desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_premium where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
+///premium Hottest
+        [HttpGet("premium/hot/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult premiumhot(string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY likes desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_premium where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
+///premium Top Rated
+        [HttpGet("premium/rate/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult premiumrate(string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY plays desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_premium where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
+///video Hottest
+        [HttpGet("hot/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult videohot(string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY likes desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
+///video Top Rated
+        [HttpGet("rate/{language}/{page}/{count}/{user}")]
+        [Authorize]
+        public ActionResult videorate(string language, int page, int count, string user)
+        {
+            try{
+                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@start",start),
+                    new SqlParameter("@end",end),
+                    new SqlParameter("@language",language),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM 
+                    (SELECT ROW_NUMBER() OVER (ORDER BY plays desc) rowNumber,
+                    videoUrlReal as videoUrl,
+                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                    WHERE rowNumber between @start and @end
+                    order by rowNumber", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
 
 
     }
