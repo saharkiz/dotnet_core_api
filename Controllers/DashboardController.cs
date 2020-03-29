@@ -193,6 +193,24 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+//followed channels details by user
+        [HttpGet("followchannel/list/detail/{user}")]
+        [Authorize]
+        public ActionResult followedchanneldetail(string user)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@userid",user),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"SELECT * FROM [vs_subscribe_channel] sc inner join vs_channel c on c.id = sc.channel_id where sc.subscriber_user_id=@userid", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
 //Create channel
         [HttpPost("create/channel/{user}")]
         [Authorize]

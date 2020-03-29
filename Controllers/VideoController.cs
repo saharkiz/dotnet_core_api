@@ -554,7 +554,7 @@ namespace myvapi.Controllers
             }
         } 
 //uploaded video detail
-        [HttpGet("detail/{user}")]
+        [HttpPost("detail/{user}")]
         [Authorize]
         public ActionResult DetailVideo([FromBody]Dictionary<string, object> model, string user)
         {
@@ -686,7 +686,7 @@ namespace myvapi.Controllers
             }
         }
 ///search video
-        [HttpGet("search/{type}")]
+        [HttpPost("search/{type}")]
         [AllowAnonymous]
         public ActionResult search([FromBody] Dictionary<string, object> obj, string searchtype)
         {

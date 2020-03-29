@@ -124,7 +124,7 @@ namespace myvapi.Controllers
             }
         }
 ///search channel
-        [HttpGet("search/{type}")]
+        [HttpPost("search/{type}")]
         [AllowAnonymous]
         public ActionResult search([FromBody] Dictionary<string, object> obj, string searchtype)
         {
