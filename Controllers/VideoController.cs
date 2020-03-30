@@ -582,7 +582,7 @@ namespace myvapi.Controllers
             }
             catch(Exception)
             {
-                return BadRequest(new {error = "Request Terminated!" });
+                return BadRequest(new {error = "Request Terminated!"});
             }
         }
 //search video
@@ -637,9 +637,9 @@ namespace myvapi.Controllers
                 and parentid is null and IsVisible=1  order by runningNum desc", param);
                 return Ok(lst);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
-                return BadRequest(new {error = "Request Terminated!"+ ex.ToString() });
+                return BadRequest(new {error = "Request Terminated!" });
             }
         }
 //get comment list
@@ -677,7 +677,7 @@ namespace myvapi.Controllers
                 var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VShop, 
                     @"INSERT INTO t_Comments 
                     (ReferenceId,Comment,CreatedBy,CreatedOn,CommentType) 
-                    VALUES  (@Refid,@Comment, @CreatedBy, GETDATE(),@ctype)", param);
+                    VALUES  (@id,@Comment, @CreatedBy, GETDATE(),@ctype)", param);
                 return Ok(lst);
             }
             catch(Exception)
@@ -688,7 +688,7 @@ namespace myvapi.Controllers
 ///search video
         [HttpPost("search/{type}")]
         [AllowAnonymous]
-        public ActionResult search([FromBody] Dictionary<string, object> obj, string searchtype)
+        public ActionResult search([FromBody] Dictionary<string, object> obj, string type)
         {
             try{
                 string keyword = obj["search"].ToString();
@@ -696,21 +696,35 @@ namespace myvapi.Controllers
 
                 SqlParameter[] param = {
                     new SqlParameter("@SearchKey",searchWord),
-                    new SqlParameter("@Type",searchtype),
+                    new SqlParameter("@Type",type),
                 };
-                var resulttable = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.Vtube,"sp_SearchResult",param);
+                var resulttable = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.VShop,"sp_SearchResult",param);
                 if (resulttable.Count > 0)
                 {
+                    DataTable table = new DataTable();
+                    foreach (IDictionary<string, object> row in resulttable)
+                    {
+                        foreach (KeyValuePair<string, object> entry in row)
+                        {
+                            if (!table.Columns.Contains(entry.Key.ToString()))
+                            {
+                                table.Columns.Add(entry.Key);
+                            }
+                        }
+                        String[] foos = new String[row.Count];
+                        row.Values.CopyTo(foos, 0);
+                        table.Rows.Add(foos);
+                    }
                     SqlParameter[] paramresult = {
-                        new SqlParameter("@table",resulttable),
-                        new SqlParameter("@Type",searchtype),
+                        new SqlParameter("@table",table),
+                        new SqlParameter("@Type",type),
                         new SqlParameter("@orderby","latest"),
                     };
-                    var result = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.Vtube,"sp_Results",paramresult);
+                    var result = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.VShop,"sp_Results",paramresult);
                     return Ok(result);
                 }
                 else{
-                    return NotFound();
+                    return NotFound( new {error = " Empty Results"});
                 }
             }
             catch(Exception)
