@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using myvapi.Utility;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using System.Security.Cryptography;
 
 using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
@@ -303,32 +304,57 @@ namespace myvapi.Controllers
 //upload User Avatar 
         [HttpPost("upload/avatar/{user}")]
         [Authorize]
-        public ActionResult uploadavatar([FromForm(Name = "files")] List<IFormFile> files, string user)
+        public async IAsyncEnumerable<OkObjectResult> uploadavatar([FromForm(Name = "files")] List<IFormFile> files, string user)
         {
+            OkObjectResult resultout = Ok(new {error = "Processing..." });;
             try{
-            string subDirectory = "upload";
-            var target = Path.Combine(Environment.CurrentDirectory, subDirectory);
-            var filePath = "";
-            string finalFileName = "";
-            Directory.CreateDirectory(target);
+                string subDirectory = "upload";
+                var target = Path.Combine(Environment.CurrentDirectory, subDirectory);
+                var filePath = "";
+                string finalFileName = "";
+                Directory.CreateDirectory(target);
 
-            files.ForEach(async file =>
-            {
-                if (file.Length <= 0) return;
-                String ret = Regex.Replace(file.FileName.Trim(), "[^A-Za-z0-9.]+", "");
-                finalFileName = user + "_avatar_" + ret.Replace(" ", String.Empty);
-                filePath = Path.Combine(target,  finalFileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                files.ForEach(async file =>
                 {
-                    await file.CopyToAsync(stream);
-                }
-            });
-            return Ok(new {filename= finalFileName,Statuscode="Completed Upload" , files.Count, Size = SqlHelper.SizeConverter(files[0].Length) });
+                    if (file.Length <= 0) return;
+                    String ret = Regex.Replace(file.FileName.Trim(), "[^A-Za-z0-9.]+", "");
+                    finalFileName = user + "_avatar_" + ret.Replace(" ", String.Empty);
+                    filePath = Path.Combine(target,  finalFileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                        }
+                });
+                            if (System.IO.File.Exists(filePath))
+                            {
+                                byte[] contentoffile = await System.IO.File.ReadAllBytesAsync(filePath);
+                                if (contentoffile.Length > 0)
+                                {
+                                    SqlParameter[] param = {
+                                        new SqlParameter("@id",user),
+                                        new SqlParameter("@avatarURL", contentoffile)
+                                    };
+
+                                    var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                                    @"UPDATE t_Members SET update_date = GETDATE(), last_modified = GETDATE(),avatarURL = @avatarURL  WHERE id = @id", param);
+                                    resultout = Ok(new {filename= finalFileName,Statuscode="Completed Upload" , files.Count, Size = SqlHelper.SizeConverter(files[0].Length) });
+                                }
+                                else
+                                {
+                                    resultout = Ok(new {error = "File Content Empty!" });
+                                }
+                            }
+                            else
+                            {
+                                resultout =  Ok(new {error = "File Not Uploaded!" });
+                            }
+                    
             }
             catch(Exception)
             {
-                return NotFound(new {error = "Upload Terminated!" });
+                resultout =  Ok(new {error = "Upload Terminated!" });
             }
+            yield return resultout;
         } 
 //Update Billing information
         [HttpPost("update/billing/{user}")]
@@ -493,8 +519,31 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+///user password
+        [HttpPost("update/password/{user}")]
+        [Authorize]
+        public ActionResult updatepassword([FromBody]Dictionary<string, object> model, string user)
+        {
+            try{
+                using (MD5 md5Hash = MD5.Create())
+                {
+                    string hash = SqlHelper.GetMd5Hash(md5Hash, model["newpassword"].ToString());
+                    SqlParameter[] param = {
+                        new SqlParameter("@user_id",user),
+                        new SqlParameter("@oldpassword",model["oldpassword"].ToString()),
+                        new SqlParameter("@newpassword",model["newpassword"].ToString()),
+                        new SqlParameter("@pass",hash)
+                    };
 
-
-
+                    var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                    @"UPDATE t_members SET passwd=@pass, NonEncPassword=@newpassword where NonEncPassword=@oldpassword and userid=@userid", param);
+                    return Ok(lst);
+                }
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }    
     }
 }

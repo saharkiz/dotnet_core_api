@@ -11,6 +11,8 @@ using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
 
+using Microsoft.Extensions.Caching.Memory;
+
 namespace myvapi.Controllers
 {
     [ApiController]
@@ -19,9 +21,12 @@ namespace myvapi.Controllers
     public class VideoController : ControllerBase //for Web API ONLY
     {
         private readonly IOptions<MySettingsModel> appSettings; 
-        public VideoController(IOptions<MySettingsModel> app)  
+        private readonly IMemoryCache _cache;
+
+        public VideoController(IOptions<MySettingsModel> app, IMemoryCache memoryCache)  
         {  
-            appSettings = app;  
+            appSettings = app; 
+            _cache = memoryCache; 
         } 
 
         [HttpGet]
@@ -35,18 +40,24 @@ namespace myvapi.Controllers
         [AllowAnonymous]
         public ActionResult category()
         {
-            try{
-                SqlParameter[] param = {
-                };
-
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                "select category, COUNT(Id) as count from View_VideoList_API where isapproved = 1 and category<>'' group by category order by count desc", param);
-                return Ok(lst);
-            }
-            catch(Exception)
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "video.category";
+            if (!_cache.TryGetValue(CacheEntry, out lst))
             {
-                return BadRequest(new {error = "Request Terminated!" });
+                try{
+                    SqlParameter[] param = {};
+                    lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    "select category, COUNT(Id) as count from View_VideoList_API where isapproved = 1 and category<>'' group by category order by count desc", param);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                    _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                }
+                catch(Exception)
+                {
+                    return BadRequest(new {error = "Request Terminated!" });
+                }
             }
+            return Ok(lst);
+            
         }
 ///Video Details for All
         [HttpGet("{vid}")]
@@ -73,6 +84,50 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+///Video Details for All
+        [HttpGet("translate/{language}/{vid}")]
+        [AllowAnonymous]
+        public ActionResult GetVidLanguage(string language, string vid)
+        {
+            try{
+                SqlParameter[] paramTemp = {
+                    new SqlParameter("@idorname",vid),
+                };
+
+                SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
+                @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@idorname",vid),
+                };
+                if (language != "en")
+                {
+                    if (language.Length == 2)
+                    {
+                        var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                                @"select TOP 1 *
+                                    ,(SELECT top 1  " + language + "_title  FROM [vs_translation] where bcid=vv.bcid) as t_title "+
+                                    ",(SELECT top 1 " + language + "_description FROM [vs_translation] where bcid=vv.bcid) as t_desc "+
+                                    " from View_VideoList_API vv where videoprivacy='public' and (id=@idorname or name=@idorname)", param);
+                        return Ok(lst);
+                    }
+                    else
+                    {
+                        return BadRequest(new {error = "Request Terminated!" });
+                    }
+                }
+                else{
+                    var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"select TOP 1 * from View_VideoList_API where videoprivacy='public' and (id=@idorname or name=@idorname)", param);
+                    return Ok(lst);
+                }
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
 ///Video Details for the loggedin User        
         [HttpGet("{vid}/{user}")]
         [Authorize]
@@ -98,6 +153,50 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+///Video Details for All
+        [HttpGet("translate/{language}/{vid}/{user}")]
+        [Authorize]
+        public ActionResult GetVidLoginLanguage(string language, string vid)
+        {
+            try{
+                SqlParameter[] paramTemp = {
+                    new SqlParameter("@idorname",vid),
+                };
+
+                SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
+                @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
+
+                SqlParameter[] param = {
+                    new SqlParameter("@idorname",vid),
+                };
+                if (language != "en")
+                {
+                    if (language.Length == 2)
+                    {
+                        var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                                @"select TOP 1 *
+                                    ,(SELECT top 1  " + language + "_title  FROM [vs_translation] where bcid=vv.bcid) as t_title "+
+                                    ",(SELECT top 1 " + language + "_description FROM [vs_translation] where bcid=vv.bcid) as t_desc "+
+                                    " from View_VideoList_API vv where (id=@idorname or name=@idorname)", param);
+                        return Ok(lst);
+                    }
+                    else
+                    {
+                        return BadRequest(new {error = "Request Terminated!" });
+                    }
+                }
+                else{
+                    var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"select TOP 1 * from View_VideoList_API where (id=@idorname or name=@idorname)", param);
+                    return Ok(lst);
+                }
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!"});
+            }
+        }
+
 ///List of all videos by language
         [HttpGet("{language}/{page}/{count}")]
         [AllowAnonymous]
@@ -112,15 +211,38 @@ namespace myvapi.Controllers
                     new SqlParameter("@end",end),
                     new SqlParameter("@language",language),
                 };
-
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"SELECT * FROM 
-                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
-                    CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
-                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
-                    WHERE rowNumber between @start and @end
-                    order by rowNumber", param);
-                return Ok(lst);
+                if (language != "en")
+                {
+                    if (language.Length == 2)
+                    {
+                        var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                                @"SELECT * FROM 
+                                    (SELECT 
+                                    ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                                    CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
+                                    *
+                                    ,(SELECT top 1  " + language + "_title  FROM [vs_translation] where bcid=vv.bcid) as t_title "+
+                                    ",(SELECT top 1 " + language + "_description FROM [vs_translation] where bcid=vv.bcid) as t_desc "+
+                                    "FROM View_VideoList_API vv where isapproved=1 and CHARINDEX(@language,[language]) > 0) v "+
+                                    "WHERE rowNumber between @start and @end "+
+                                    "order by rowNumber", param);
+                        return Ok(lst);
+                    }
+                    else
+                    {
+                        return BadRequest(new {error = "Request Terminated!" });
+                    }
+                }
+                else{
+                    var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"SELECT * FROM 
+                        (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                        CASE WHEN videoPrivacy<>'private' THEN videoUrlReal ELSE '' END as videoUrl,
+                        * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                        WHERE rowNumber between @start and @end
+                        order by rowNumber", param);
+                    return Ok(lst);
+                }
             }
             catch(Exception)
             {
@@ -141,16 +263,39 @@ namespace myvapi.Controllers
                     new SqlParameter("@end",end),
                     new SqlParameter("@language",language),
                 };
-
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"
-                    SELECT * FROM 
-                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
-                    videoUrlReal as videoUrl,
-                    * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
-                    WHERE rowNumber between @start and @end
-                    order by rowNumber", param);
-                return Ok(lst);
+                if (language != "en")
+                {
+                    if (language.Length == 2)
+                    {
+                        var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                                @"SELECT * FROM 
+                                    (SELECT 
+                                    ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                                    videoUrlReal as videoUrl,
+                                    *
+                                    ,(SELECT top 1  " + language + "_title  FROM [vs_translation] where bcid=vv.bcid) as t_title "+
+                                    ",(SELECT top 1 " + language + "_description FROM [vs_translation] where bcid=vv.bcid) as t_desc "+
+                                    "FROM View_VideoList_API vv where isapproved=1 and CHARINDEX(@language,[language]) > 0) v "+
+                                    "WHERE rowNumber between @start and @end "+
+                                    "order by rowNumber", param);
+                        return Ok(lst);
+                    }
+                    else
+                    {
+                        return BadRequest(new {error = "Request Terminated!" });
+                    }
+                }
+                else{
+                    var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"
+                        SELECT * FROM 
+                        (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
+                        videoUrlReal as videoUrl,
+                        * FROM View_VideoList_API where isapproved=1 and CHARINDEX(@language,[language]) > 0) v
+                        WHERE rowNumber between @start and @end
+                        order by rowNumber", param);
+                    return Ok(lst);
+                }
             }
             catch(Exception)
             {

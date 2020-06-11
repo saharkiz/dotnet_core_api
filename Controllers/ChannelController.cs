@@ -54,7 +54,7 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
-///Channel Details for All ID or Name
+///Channel Details for All ID 
         [HttpGet("{channelid}")]
         [AllowAnonymous]
         public ActionResult Get(string channelid)
@@ -64,7 +64,25 @@ namespace myvapi.Controllers
                     new SqlParameter("@idorname",channelid),
                 };
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"select TOP 1 * from View_ChannelList_API where (name=@idorname or cast(id as varchar(10))=@idorname)", param);
+                @"select TOP 1 * from View_ChannelList_API where id=@idorname", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
+        }
+///Channel Details for All Name
+        [HttpGet("name/{channelname}")]
+        [AllowAnonymous]
+        public ActionResult GetByName(string channelname)
+        {
+            try{
+                SqlParameter[] param = {
+                    new SqlParameter("@idorname",channelname),
+                };
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                @"select TOP 1 * from View_ChannelList_API where name=@idorname", param);
                 return Ok(lst);
             }
             catch(Exception)
