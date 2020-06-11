@@ -4,6 +4,8 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace myvapi.Utility
 {
@@ -241,7 +243,33 @@ namespace myvapi.Utility
                     return "n/a";
             }
         }
-    }
+    
+        public static string GetMd5Hash(MD5 md5Hash, string input)
+            {
+                byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
+                StringBuilder sBuilder = new StringBuilder();
+                for (int i = 0; i < data.Length; i++)
+                {
+                    sBuilder.Append(data[i].ToString("x2"));
+                }
+                return sBuilder.ToString();
+            }
+
+        public static string RandomString(int size, bool lowerCase)  
+        {  
+            StringBuilder builder = new StringBuilder();  
+            Random random = new Random();  
+            char ch;  
+            for (int i = 0; i < size; i++)  
+            {  
+                ch = Convert.ToChar(Convert.ToInt32(Math.Floor(26 * random.NextDouble() + 65)));  
+                builder.Append(ch);  
+            }  
+            if (lowerCase)  
+                return builder.ToString().ToLower();  
+            return builder.ToString();  
+        }  
+        }
 
     public class MySettingsModel  
     {  
@@ -249,8 +277,9 @@ namespace myvapi.Utility
         public string Vtube { get; set; }  
         public string VShop { get; set; }  
         public string VMembers { get; set; }  
+        public string CreativeLab { get; set; }  
         public string SMTPServer { get; set; }  
-        public string SMTPPort { get; set; }  
+        public int SMTPPort { get; set; }  
         public string SMTPUsername { get; set; }  
         public string SMTPPassword { get; set; }  
         public string Secret { get; set; }  
