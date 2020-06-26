@@ -146,6 +146,8 @@ namespace myvapi.Controllers
                 };
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
                 @"select TOP 1 * from View_VideoList_API where (id=@idorname or name=@idorname)", param);
+
+                gameHelper.givePoint(appSettings.Value.VShop, "WatchVideo", "Watched a video", user, vid, string.Format("Watched {0} video", vid));
                 return Ok(lst);
             }
             catch(Exception)

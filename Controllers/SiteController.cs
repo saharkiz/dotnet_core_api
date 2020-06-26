@@ -37,13 +37,13 @@ namespace myvapi.Controllers
                 id = "Bahasa Indonesia",
                 fa = "فارسی",
                 fr = "Français",
-                ku = "Kurdish",
+                ku = "کوردی",
                 ru = "Русский",
                 tr = "Türkçe",
-                my = "ဗမာ",
+                //my = "ဗမာ",
                 si = "සිංහල",
                 //hi = "Hindi",
-                //ta = "தமிழ்"
+                ta = "தமிழ்"
              });
         }
         [HttpGet("picture")]
@@ -92,7 +92,7 @@ namespace myvapi.Controllers
                     new SqlParameter("@id",id),
                 };
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"SELECT image FROM vs_channel where id = @id", param);
+                @"SELECT isnull(image,CONVERT(VARBINARY(MAX), 0)) as image,isnull(thumbnail,'') as thumbnail FROM vs_channel where id = @id", param);
 
                 byte[] imagedata = (byte[])lst[0]["image"];
                 if (imagedata.Length > 5)
@@ -112,12 +112,19 @@ namespace myvapi.Controllers
                 }
                 else
                 {
-                    return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg");
+                    if (lst[0]["thumbnail"].ToString().Length > 5)
+                    {
+                        return Redirect(lst[0]["thumbnail"].ToString());
+                    }
+                    else
+                    {
+                        return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg");
+                    }
                 }
             }
             catch(Exception)
             {
-                return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg");
+                return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg?exception=1");
             }
         }
         [HttpGet("video/{width}/{height}")]
@@ -218,30 +225,41 @@ namespace myvapi.Controllers
         
         [HttpGet("check")]
         [AllowAnonymous]
-        public async Task<IActionResult> check()
+        public async Task<IActionResult> check([FromQuery(Name = "id")] string id = "0")
         {
+            SqlParameter[] param = {
+                new SqlParameter("@id",id)
+            };
+
+            var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+            "SELECT * FROM vs_entry_details WHERE id=@id", param);
+
             IDictionary<string, object> dict = new Dictionary<string, object>();
-            dict.Add("name","ARESH test video curl");
-            dict.Add("description","short description");
-            dict.Add("long_description","long description");
-            dict.Add("reference_id","dynamic-ingestion0203");
+            dict.Add("name",lst[0]["name"]);
+            dict.Add("description",lst[0]["description"]);
+            dict.Add("long_description",lst[0]["description"]);
+            dict.Add("reference_id",lst[0]["runningNum"]);
             dict.Add("tags", new string[] {"user","upload"});
             string data = SimpleJson.SerializeObject(dict);
 
             IDictionary<string, object> filevid = new Dictionary<string, object>();
-            filevid.Add("url","http://learning-services-media.brightcove.com/videos/mp4/Bird_Woodpecker.mp4");
+            filevid.Add("url","https://api.the-v.net/upload/"+ lst[0]["FileName"]);
 
             IDictionary<string, object> dictVid = new Dictionary<string, object>();
             dictVid.Add("master", filevid);
             dictVid.Add("profile","Asia-PREMIUM");
             string uplo = SimpleJson.SerializeObject(dictVid);
 
-            await upload_Video(uplo,data); 
-
-            return Ok("Upload Complete");
+            if (lst[0]["FileName"].ToString() != "null")
+            {
+                string conetnt  = await upload_Video(uplo,data); 
+                return Ok(conetnt);
+            }
+            else { return Ok("ERROR: Database Filename EMPTY"); }
+            
         }
     
-        private async Task upload_Video(string uplo, string data)
+        private async Task<string> upload_Video(string uplo, string data)
         {
             string tokencall = await Task.Run(() => {
                 return brightcove.brightcove_token();
@@ -254,10 +272,16 @@ namespace myvapi.Controllers
             });
             dynamic videoDetails = SimpleJson.DeserializeObject(viddetail);
             
-            string vidupload= await Task.Run(() => {
-                return brightcove.brightcove_upload_video(videoDetails.id,uplo, json.access_token);
-            });
-            //dynamic videoUpload = SimpleJson.DeserializeObject(vidupload);
+            try{
+                string vidupload= await Task.Run(() => {
+                    return brightcove.brightcove_upload_video(videoDetails.id,uplo, json.access_token);
+                });
+            }
+            catch(Exception)
+            {
+                return "ERROR: Video with Reference ID already Exists";
+            }
+            return "Upload Complete";
         }
     }
 }

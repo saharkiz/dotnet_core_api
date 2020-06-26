@@ -356,6 +356,61 @@ namespace myvapi.Controllers
             }
             yield return resultout;
         } 
+//upload channel image 
+        [HttpPost("upload/channelavatar/{channel}/{user}")]
+        [Authorize]
+        public async IAsyncEnumerable<OkObjectResult> uploadchannelavatar([FromForm(Name = "files")] List<IFormFile> files, string channel, string user)
+        {
+            OkObjectResult resultout = Ok(new {error = "Processing..." });;
+            try{
+                string subDirectory = "upload";
+                var target = Path.Combine(Environment.CurrentDirectory, subDirectory);
+                var filePath = "";
+                string finalFileName = "";
+                Directory.CreateDirectory(target);
+
+                files.ForEach(async file =>
+                {
+                    if (file.Length <= 0) return;
+                    String ret = Regex.Replace(file.FileName.Trim(), "[^A-Za-z0-9.]+", "");
+                    finalFileName = user + "_channelavatar_" + ret.Replace(" ", String.Empty);
+                    filePath = Path.Combine(target,  finalFileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                        }
+                });
+                            if (System.IO.File.Exists(filePath))
+                            {
+                                byte[] contentoffile = await System.IO.File.ReadAllBytesAsync(filePath);
+                                if (contentoffile.Length > 0)
+                                {
+                                    SqlParameter[] param = {
+                                        new SqlParameter("@id",channel),
+                                        new SqlParameter("@avatarURL", contentoffile)
+                                    };
+
+                                    var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                                    @"UPDATE vs_channel SET update_date = GETDATE(), image = @avatarURL  WHERE id = @id", param);
+                                    resultout = Ok(new {filename= finalFileName,Statuscode="Completed Upload" , files.Count, Size = SqlHelper.SizeConverter(files[0].Length) });
+                                }
+                                else
+                                {
+                                    resultout = Ok(new {error = "File Content Empty!" });
+                                }
+                            }
+                            else
+                            {
+                                resultout =  Ok(new {error = "File Not Uploaded!" });
+                            }
+                    
+            }
+            catch(Exception)
+            {
+                resultout =  Ok(new {error = "Upload Terminated!" });
+            }
+            yield return resultout;
+        } 
 //Update Billing information
         [HttpPost("update/billing/{user}")]
         [Authorize]

@@ -5,12 +5,6 @@ using System.Data.SqlClient;
 using System.Data;
 using Microsoft.Extensions.Options;
 using myvapi.Utility;
-using System.Text.Json;
-
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Net.Http.Headers;
-using Microsoft.AspNetCore.Http;
-using System.IO;
 
 using Microsoft.AspNetCore.Authorization;
 
@@ -19,10 +13,8 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-
 using System.Net.Mail;
-//using MailKit.Net.Smtp;
-//using MimeKit;
+
 
 using System.Threading.Tasks;
 
@@ -252,7 +244,7 @@ namespace myvapi.Controllers
             ViewBag.msg = "Password changed successfully.";
             return View("change_password");
         }
-        
+ #region QNET Activate       
         [HttpGet("activate")]
         [AllowAnonymous]
         public IActionResult activate([FromQuery(Name = "token")] string mytoken)
@@ -300,6 +292,152 @@ namespace myvapi.Controllers
                 return BadRequest(new { message = "Invalid Parameters" });
             }
         }
+#endregion
+
+#region two factor authentication
+        [HttpGet("index_2f")]
+        [AllowAnonymous]
+        public ActionResult index2f()
+        {
+            if (Request.QueryString.ToString().Length > 0)
+            {
+                ViewBag.msg = "Two Factor Authentication Required";
+            }
+            else
+            {
+                ViewBag.msg = "";
+            }
+            return View("index2f");
+        }
+        [HttpGet("enableauthenticator")]
+        [AllowAnonymous]
+        public ActionResult enableauthenticator()
+        {
+            
+                string email = "saharkiz@yahoo.com";
+                string unformattedKey = TimeSensitivePassCode.GeneratePresharedKey();
+                string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
+                string temp = string.Format(
+                AuthenticatorUriFormat, "vtube.net", email, unformattedKey);
+                ViewBag.msg = "Two Factor Authentication is Enabled.";
+                ViewBag.SharedKey = unformattedKey;
+                ViewBag.AuthenticatorUri = temp;
+                return View("enableAuthenticator");
+        }
+        [HttpPost("enable_authenticator")]
+        [AllowAnonymous]
+        public ActionResult enable_authenticator([FromForm]FormModel model)
+        {
+            string unformattedKey = model.hash;
+            IList<string> result = TimeSensitivePassCode.GetListOfOTPs(unformattedKey);
+            if (model.qrcode == result[0])
+            {
+                ViewBag.msg ="Matched";
+            }
+            else{
+                ViewBag.msg ="Not matched";
+            }
+            return View("enableAuthenticator");
+        }
+        [HttpPost("index_2f")]
+        [AllowAnonymous]
+        public ActionResult index_2f([FromForm]FormModel model)
+        {
+            string unformattedKey = model.hash;
+            IList<string> result = TimeSensitivePassCode.GetListOfOTPs(unformattedKey);
+            if (model.qrcode == result[0])
+            {
+                ViewBag.msg ="Matched";
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(appSettings.Value.Secret);
+                var tokenDescriptor = new SecurityTokenDescriptor
+                {
+                    Subject = new ClaimsIdentity(new Claim[] 
+                    {
+                        new Claim(ClaimTypes.Name, "UID")
+                    }),
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Audience = "ats",
+                    Issuer = "aresh",
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                };
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+                var finalToken = tokenHandler.WriteToken(token);
+
+                var output = new {ver=3.141, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=unformattedKey, lang="en"};
+            }
+            else{
+                ViewBag.msg ="ERROR: Two Factor Authentication did Not matched";
+            }
+            return View("index2f");
+        }
+ #endregion
+
+ #region ZOOM meeting
+        [HttpGet("zoom")]
+        [AllowAnonymous]
+        public ActionResult zoom([FromQuery(Name = "id")] string id = "Vtube User")
+        {
+            if (Request.Scheme != "https")
+            {
+                return NotFound("Please use Https Secure Url");
+            }
+            if (Request.QueryString.ToString().Length > 0)
+            {
+                ViewBag.msg = "Welcome to ZOOM Meeting";
+            }
+            else
+            {
+                ViewBag.msg = "";
+            }
+            string apiKey = "pFX75zrUROmilY7og1q5qw";
+            string apiSecret = "AS7CXqHgs9g9YFSSg4NpuP9CPuiYWOT6vQmU";
+            string meetingNumber = "3150482003";
+            String ts = (zoomHelper.ToTimestamp(DateTime.UtcNow.ToUniversalTime()) - 30000).ToString();
+            string role = "0"; // 0 for participants & joining webinars
+            string token = zoomHelper.GenerateToken (apiKey, apiSecret, meetingNumber, ts, role);
+
+            ViewBag.apiKey = apiKey;
+            ViewBag.passWord = "9wM38N"; //meeting password
+            ViewBag.token = token;
+            ViewBag.meetingNumber = meetingNumber;
+            ViewBag.userName = id;
+            return View("index_zoom");
+        }
+        [HttpGet("zoom_host")]
+        [AllowAnonymous]
+        public ActionResult zoom_host()
+        {
+            if (Request.Scheme != "https")
+            {
+                return NotFound("Please use Https Secure Url");
+            }
+            if (Request.QueryString.ToString().Length > 0)
+            {
+                ViewBag.msg = "Welcome to ZOOM Meeting";
+            }
+            else
+            {
+                ViewBag.msg = "";
+            }
+            string apiKey = "pFX75zrUROmilY7og1q5qw";
+            string apiSecret = "AS7CXqHgs9g9YFSSg4NpuP9CPuiYWOT6vQmU";
+            string meetingNumber = "3150482003";
+            String ts = (zoomHelper.ToTimestamp(DateTime.UtcNow.ToUniversalTime()) - 30000).ToString();
+            string role = "1"; 	//1 for meeting host, 0 for participants & joining webinars
+            string token = zoomHelper.GenerateToken (apiKey, apiSecret, meetingNumber, ts, role);
+
+            ViewBag.apiKey = apiKey;
+            ViewBag.passWord = "9wM38N"; //meeting password
+            ViewBag.token = token;
+            ViewBag.meetingNumber = meetingNumber;
+            ViewBag.userName = "Host Name";
+            return View("zoom_host");
+        }
+ #endregion       
+
+
+
 
     }
     public class FormModel
@@ -310,6 +448,8 @@ namespace myvapi.Controllers
         public string irid { get; set; }
         public string returnurl { get; set; }
         public string token { get; set; }
+
+        public string qrcode{ get; set; }
+        public string hash{ get; set; }
     }
-    
 }
