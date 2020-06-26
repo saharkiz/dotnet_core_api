@@ -43,8 +43,13 @@
             margin: 0px !important;
         }
         .btn-signup {
+            padding: 8px 125px;
+            border-radius: 0;
+            line-height: 1.5;
+            font-size:13px;
             border: 0;
             color: #fff;
+            text-decoration: none;
             background-color: #3A5E9A;
             border-radius: 0.5rem !important;
             height: calc(1.5em + 0.75rem + 2px);
@@ -149,16 +154,16 @@
                         <input type="text" class="txt-input" id="txtEmail" placeholder="E-mail" name="email" required
                             autocomplete="off"><br>
                         <input type="password" class="txt-input" id="txtPassword" placeholder="Password" name="password"
-                            minlength="6" required autocomplete="off"><br>
+                            minlength="5" required autocomplete="off"><br>
                         <p style="font-size: 12px;">
                             Forgot your 
                                 <a href="/log/forgot_username" style="text-decoration: none; color: #171717; font-weight: 600;">username</a> or 
                                 <a href="/log/forgot_password" style="text-decoration: none; color: #171717; font-weight: 600;">password?</a>
                         </p>
                         <button id="btnLogin" class="btn-secondary" type="submit">Login</button>
-                        <p style="font-size: 12px;">New to VTube+?</p>
-                        <a style="text-decoration: none; color:white" href="https://the-v.net/register?referer=vtube.net">
-                            <button class="btn-signup">Signup</button>
+                        <p style="font-size: 12px;">New to Vtube.net?</p>
+                        <a class="btn-signup" href="https://the-v.net/register?referer=vtube.net">
+                            Signup
                         </a>
                     </form>
                 </div>

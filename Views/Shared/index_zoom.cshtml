@@ -2,45 +2,41 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>V Single SignOn</title>
+    <title>VConnect</title>
     <meta name="description" content="Login - Register Template">
     <meta name="author" content="TheV">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
+    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/1.7.8/css/bootstrap.css" />
+    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/1.7.8/css/react-select.css" />
+    <meta name="format-detection" content="telephone=no">
     <style>
         input:focus,
         textarea:focus,
         select:focus {
             outline: none;
-
         }
-
         /* WebKit browsers */
         input:focus::-webkit-input-placeholder {
             color: transparent;
         }
-
         /* Mozilla Firefox 4 to 18 */
         input:focus:-moz-placeholder {
             color: transparent;
         }
-
         /* Mozilla Firefox 19+ */
         input:focus::-moz-placeholder {
             color: transparent;
         }
-
         /* Internet Explorer 10+ */
         input:focus:-ms-input-placeholder {
             color: transparent;
         }
-
         /* IE 10+ */
         .btn-secondary {
-            border: 0;
             color: #fff;
             background-color: #00A6CE;
+            border: 0;
             border-radius: 0.5rem !important;
             height: calc(1.5em + 0.75rem + 2px);
             width: 100%;
@@ -48,10 +44,14 @@
             margin: 5px;
             margin: 0px !important;
         }
-
         .btn-signup {
+            padding: 8px 125px;
+            border-radius: 0;
+            line-height: 1.5;
+            font-size:13px;
             border: 0;
             color: #fff;
+            text-decoration: none;
             background-color: #3A5E9A;
             border-radius: 0.5rem !important;
             height: calc(1.5em + 0.75rem + 2px);
@@ -60,15 +60,12 @@
             margin: 5px;
             margin: 0px !important;
         }
-
         ::placeholder {
-
             font-size: 13px;
             color: #171717;
             opacity: 1;
             padding-left: 10px;
         }
-
         .txt-input {
             border-radius: 0.5rem;
             height: calc(1.5em + 0.75rem + 2px);
@@ -80,14 +77,13 @@
             width: 100%;
             max-width: 300px;
         }
-
         .thev-signin-background {
             background: url(thev-login-bg.svg);
             background-size: contain;
             background-repeat: no-repeat;
             background-position: bottom;
+            height: 100vh;
         }
-
         .alert {
             position: relative;
             padding: 20px;
@@ -102,7 +98,6 @@
             box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
             transition: 1s all cubic-bezier(1, -0.01, 0, 0.99);
         }
-
         .alert-success {
             background-color: #f44336;
         }
@@ -117,7 +112,6 @@
             -moz-animation: alert-anim 1s cubic-bezier(1, -0.01, 0, 0.99);
             animation: alert-anim 1s cubic-bezier(1, -0.01, 0, 0.99);
         }
-
         @@media only screen and (max-width: 600px) {
             .thev-signin-background {
                 background: url(thev-login-sm-bg.svg);
@@ -127,14 +121,12 @@
                 height: 100%;
             }
         }
-
         .parent {
             display: table;
             width: 100%;
             height: 500px;
             text-align: center;
         }
-
         .child {
             display: table-cell;
             vertical-align: middle;
@@ -145,33 +137,74 @@
 <body style="margin:0px !important; background-color: #DDDDDD; font-family: Arial, Helvetica, sans-serif;">
     <header id="header_Logout" style=" background-color: #00A6CE !important; height: 30px; margin: 0px !important;
     position: fixed; top: 0; right: 0; left: 0; z-index: 1030;">
-    </header>
-     <div class="alert">
-        @ViewBag.msg
-    </div>
-   <section class="parent thev-signin-background" style="height: 100% !important;">
-        <div class="" style="padding-top: 100px; text-align:center; width: 100%; ">
+    <section class="parent" style="height: 100% !important;">
+        <div class="" style="padding-top:70px; text-align: center; width: 100%;">
+                <div style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
+                     <form id="meeting_form" style="margin:10px;">
 
-            <h3><strong>Change Password?</strong></h3>
+                            <label>VConnect, your virtual NSS</label><br/>
+                             <button type="submit" class="btn btn-primary" id="join_meeting">Join</button>
 
-                <p style="padding:5px 30px 0px 30px; margin-left: 5px;  margin-right: 5x; text-align: center;">Enter your new Password.</p>
-                <div
-                    style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
-                    <form action="/log/changepassword" method="post" style="margin:10px;">
-                        <input type="hidden" value="@ViewBag.token" name="token" />
-                        <input type="password" class="txt-input" id="txtpass"
-                            placeholder="New Password" name="password" required autocomplete="off"><br>
-                        <br>
-                        <input type="password" class="txt-input" id="txtpass2"
-                            placeholder="Confirm New Password" name="password2" required autocomplete="off"><br>
-                        <br>
-
-                        <button id="btnLogin" class="btn-secondary" type="submit">Submit</button>
-                        <p style="font-size: 12px;"> <a href="/log">Back to Login</a></p>
-                    </form>
+                     </form>
                 </div>
         </div>
     </section>
+</header>
+
+    <script src="https://source.zoom.us/1.7.8/lib/vendor/react.min.js"></script>
+    <script src="https://source.zoom.us/1.7.8/lib/vendor/react-dom.min.js"></script>
+    <script src="https://source.zoom.us/1.7.8/lib/vendor/redux.min.js"></script>
+    <script src="https://source.zoom.us/1.7.8/lib/vendor/redux-thunk.min.js"></script>
+    <script src="https://source.zoom.us/1.7.8/lib/vendor/jquery.min.js"></script>
+    <script src="https://source.zoom.us/1.7.8/lib/vendor/lodash.min.js"></script>
+
+    <script src="https://source.zoom.us/zoom-meeting-1.7.8.min.js"></script>
+    <script>
+        (function(){
+
+	console.log('checkSystemRequirements');
+	console.log(JSON.stringify(ZoomMtg.checkSystemRequirements()));
+
+    ZoomMtg.preLoadWasm();
+    ZoomMtg.prepareJssdk();
+
+    document.getElementById('join_meeting').addEventListener('click', function(e){
+
+        e.preventDefault();
+        jQuery("#header_Logout").hide();
+        if(!this.form.checkValidity()){
+            alert("Enter Name and Meeting Number");
+            return false;
+        }
+        ZoomMtg.init({
+            leaveUrl: 'https://api.the-v.net/log',
+            success: function () {
+                ZoomMtg.join(
+                    {
+                        meetingNumber: '@ViewBag.meetingNumber',
+                        userName: '@ViewBag.userName',
+                        signature: '@ViewBag.token',
+                        apiKey: '@ViewBag.apiKey',
+                        passWord: '@ViewBag.passWord',
+                        success: function(res){
+                            $('#nav-tool').hide();
+                            console.log('join meeting success');
+                        },
+                        error: function(res) {
+                            console.log(res);
+                        }
+                    }
+                );
+            },
+            error: function(res) {
+                console.log(res);
+            }
+        });
+
+    });
+
+})();
+    </script>
 </body>
 
 </html>

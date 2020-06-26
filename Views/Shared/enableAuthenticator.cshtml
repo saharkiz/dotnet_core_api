@@ -7,7 +7,7 @@
     <meta name="author" content="TheV">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
+    <script src="~/js/qrcode.min.js"></script>  
     <style>
         input:focus,
         textarea:focus,
@@ -82,7 +82,7 @@
         }
 
         .thev-signin-background {
-            background: url(thev-login-bg.svg);
+            background: url(/thev-login-bg.svg);
             background-size: contain;
             background-repeat: no-repeat;
             background-position: bottom;
@@ -139,6 +139,9 @@
             display: table-cell;
             vertical-align: middle;
         }
+        img{
+            margin:auto;
+        }
     </style>
 </head>
 
@@ -149,22 +152,44 @@
      <div class="alert">
         @ViewBag.msg
     </div>
-   <section class="parent thev-signin-background" style="height: 100% !important;">
-        <div class="" style="padding-top: 100px; text-align:center; width: 100%; ">
+    
+    <section class="parent thev-signin-background" style="height: 100% !important;">
+        <div class="" style="padding-top: 90px; text-align:center; width: 100%;">
 
-            <h3><strong>Change Password?</strong></h3>
+            <h3><strong>Your login is protected with an authenticator app. Enter your authenticator code below.</strong></h3>
 
-                <p style="padding:5px 30px 0px 30px; margin-left: 5px;  margin-right: 5x; text-align: center;">Enter your new Password.</p>
+                <p style="padding:5px 30px 0px 30px; margin-left: 5px;  margin-right: 5x; text-align: center;">
+                    
+                    
+
+                </p>
                 <div
                     style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
-                    <form action="/log/changepassword" method="post" style="margin:10px;">
-                        <input type="hidden" value="@ViewBag.token" name="token" />
-                        <input type="password" class="txt-input" id="txtpass"
-                            placeholder="New Password" name="password" required autocomplete="off"><br>
+                    <ol class="list" style="padding-left:50px;padding-right:50px">
+                        <li>
+                            <p>
+                                Download a two-factor authenticator app like Google Authenticator for
+                                <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&amp;hl=en">Android</a> and
+                                <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8">iOS</a>.
+                            </p>
+                        </li>
+                        <li>
+                            <p>Scan the QR Code or enter this key <kbd>@ViewBag.SharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
+                            <div id="qrCode"></div>
+                        </li>
+                        <li>
+                            <p>
+                                Once you have scanned the QR code or input the key above, your two factor authentication app will provide you
+                                with a unique code. Enter the code in the confirmation box below.
+                            </p>
+                        </li>
+                    </ol>
+                    <form action="/log/enable_authenticator" method="post" style="margin:10px;">
+                    <input type="hidden" value="@ViewBag.SharedKey" name="hash" />
+                        <input type="text" class="txt-input" id="qrcode"
+                            placeholder="Verification Code" name="qrcode" required autocomplete="off"><br>
                         <br>
-                        <input type="password" class="txt-input" id="txtpass2"
-                            placeholder="Confirm New Password" name="password2" required autocomplete="off"><br>
-                        <br>
+                        @ViewBag.result
 
                         <button id="btnLogin" class="btn-secondary" type="submit">Submit</button>
                         <p style="font-size: 12px;"> <a href="/log">Back to Login</a></p>
@@ -172,6 +197,14 @@
                 </div>
         </div>
     </section>
+    <script type="text/javascript">
+        new QRCode(document.getElementById("qrCode"),
+            {
+                text: "@ViewBag.AuthenticatorUri",
+                width: 200,
+                height: 200
+            });
+    </script>
 </body>
 
 </html>
