@@ -233,7 +233,10 @@ namespace myvapi.Controllers
                 @"SELECT * FROM 
                     (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
                     '' as videoUrl,
-                    * FROM View_VideoList_API where isapproved=1 and (cast(ChannelId as varchar(10))=@title or ChannelName=@title)) v
+                    * FROM View_VideoList_API where isapproved=1 and (cast(ChannelId as varchar(10))=@title or ChannelName=@title
+                     or cast(Channel1 as varchar(10))=@title or cast(Channel2 as varchar(10))=@title or cast(Channel3 as varchar(10))=@title
+                      or cast(Channel4 as varchar(10))=@title  or cast(Channel5 as varchar(10))=@title
+                     )) v
                     WHERE rowNumber between @start and @end
                     order by rowNumber", param);
                 return Ok(lst);
@@ -261,7 +264,10 @@ namespace myvapi.Controllers
                 @"SELECT * FROM 
                     (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,
                     videoUrlReal as videoUrl,
-                    * FROM View_VideoList_API where isapproved=1 and (cast(ChannelId as varchar(10))=@title or ChannelName=@title)) v
+                    * FROM View_VideoList_API where isapproved=1 and (cast(ChannelId as varchar(10))=@title or ChannelName=@title
+                    or cast(Channel1 as varchar(10))=@title or cast(Channel2 as varchar(10))=@title or cast(Channel3 as varchar(10))=@title
+                      or cast(Channel4 as varchar(10))=@title  or cast(Channel5 as varchar(10))=@title
+                    )) v
                     WHERE rowNumber between @start and @end
                     order by rowNumber", param);
                 return Ok(lst);

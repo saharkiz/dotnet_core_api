@@ -158,7 +158,7 @@ namespace myvapi.Controllers
 ///Video Details for All
         [HttpGet("translate/{language}/{vid}/{user}")]
         [Authorize]
-        public ActionResult GetVidLoginLanguage(string language, string vid)
+        public ActionResult GetVidLoginLanguage(string language, string vid, string user)
         {
             try{
                 SqlParameter[] paramTemp = {
@@ -168,9 +168,15 @@ namespace myvapi.Controllers
                 SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
                 @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
 
+                gameHelper.givePoint(appSettings.Value.VShop, "WatchVideo", "Watched a video", user, vid, string.Format("Watched {0} video", vid));
+                
                 SqlParameter[] param = {
                     new SqlParameter("@idorname",vid),
                 };
+                //check if user is a paid member  string membershipType = 
+                //check if video is protected     string privacyType = 
+                // if (membershipType == "Free") && privacyType == "private") return BadRequest(new {error = "Request Terminated!" });
+                //TO DO ARESH
                 if (language != "en")
                 {
                     if (language.Length == 2)
@@ -672,6 +678,7 @@ namespace myvapi.Controllers
         }
 //upload video 
         [HttpPost("upload/{user}")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
         [Authorize]
         public ActionResult upload([FromForm(Name = "files")] List<IFormFile> files, string user)
         {

@@ -168,16 +168,19 @@ namespace myvapi.Controllers
         {
             dynamic json = SimpleJson.DeserializeObject(brightcove.brightcove_token());
             dynamic videoDetails = SimpleJson.DeserializeObject(brightcove.brightcove_images(id, json.access_token));
-
+            int iposition = 0;
+            if (videoDetails.poster.sources.Count > 1){
+                iposition = 1;
+            }
             SqlParameter[] paramVid = {
                 new SqlParameter("@idorname",id),
-                new SqlParameter("@ThumbnailUrl",videoDetails.thumbnail.sources[1].src),
-                new SqlParameter("@VideoStillUrl",videoDetails.poster.sources[1].src),
+                new SqlParameter("@ThumbnailUrl",videoDetails.thumbnail.sources[iposition].src),
+                new SqlParameter("@VideoStillUrl",videoDetails.poster.sources[iposition].src),
             };
             SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
             @"UPDATE vs_entry_details SET [ThumbnailUrl]=@ThumbnailUrl,[VideoStillUrl]=@VideoStillUrl  where (id=@idorname)", paramVid);
             
-            return Ok(videoDetails.poster.sources[1].src);
+            return Ok(videoDetails.poster.sources[iposition].src);
         }
         [HttpGet("checkfix")]
         [AllowAnonymous]
@@ -232,27 +235,36 @@ namespace myvapi.Controllers
             };
 
             var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-            "SELECT * FROM vs_entry_details WHERE id=@id", param);
+            "SELECT * FROM vs_entry_details WHERE pk=@id", param);
 
             IDictionary<string, object> dict = new Dictionary<string, object>();
-            dict.Add("name",lst[0]["name"]);
-            dict.Add("description",lst[0]["description"]);
-            dict.Add("long_description",lst[0]["description"]);
+            dict.Add("name",lst[0]["Name"]);
+            dict.Add("description",lst[0]["Description"]);
+            dict.Add("long_description",lst[0]["Description"]);
             dict.Add("reference_id",lst[0]["runningNum"]);
             dict.Add("tags", new string[] {"user","upload"});
             string data = SimpleJson.SerializeObject(dict);
 
             IDictionary<string, object> filevid = new Dictionary<string, object>();
-            filevid.Add("url","https://api.the-v.net/upload/"+ lst[0]["FileName"]);
+            filevid.Add("url","https://api.the-v.net/upload?id="+ lst[0]["FileName"]);
 
             IDictionary<string, object> dictVid = new Dictionary<string, object>();
             dictVid.Add("master", filevid);
-            dictVid.Add("profile","Asia-PREMIUM");
+            //dictVid.Add("profile","Asia-PREMIUM");
+            dictVid.Add("profile","Asia-Premium-DyDelivery");
             string uplo = SimpleJson.SerializeObject(dictVid);
 
             if (lst[0]["FileName"].ToString() != "null")
             {
                 string conetnt  = await upload_Video(uplo,data); 
+                SqlParameter[] paramvid = {
+                new SqlParameter("@bcid",conetnt),
+                new SqlParameter("@id",id)
+                };
+
+                SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
+                "Update vs_entry_details set Id=@bcid, BCId=@bcid WHERE pk=@id", paramvid);
+
                 return Ok(conetnt);
             }
             else { return Ok("ERROR: Database Filename EMPTY"); }
@@ -271,9 +283,9 @@ namespace myvapi.Controllers
                 return brightcove.brightcove_create_video(data, json.access_token);
             });
             dynamic videoDetails = SimpleJson.DeserializeObject(viddetail);
-            
+            string vidupload = "";
             try{
-                string vidupload= await Task.Run(() => {
+                 vidupload= await Task.Run(() => {
                     return brightcove.brightcove_upload_video(videoDetails.id,uplo, json.access_token);
                 });
             }
@@ -281,7 +293,7 @@ namespace myvapi.Controllers
             {
                 return "ERROR: Video with Reference ID already Exists";
             }
-            return "Upload Complete";
+            return videoDetails.id;
         }
     }
 }
