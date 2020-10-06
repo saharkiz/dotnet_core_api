@@ -283,5 +283,10 @@ namespace myvapi.Utility
         public string SMTPUsername { get; set; }  
         public string SMTPPassword { get; set; }  
         public string Secret { get; set; }  
+
+
+        public string Merchant { get; set; }  
+        public string Access { get; set; }  
+        public string SecureSecret { get; set; }  
     }
 }
