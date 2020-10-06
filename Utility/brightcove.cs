@@ -19,7 +19,7 @@ namespace myvapi.Utility
             var client = new RestClient("https://oauth.brightcove.com/v4/access_token?grant_type=client_credentials");
             client.Timeout = -1;
             var request = new RestRequest(Method.POST);
-            request.AddHeader("authorization", "Basic NzQyOTZiNzktYWI3MS00MWM1LWJjY2YtYzFmZmU3YmQxZjg4OlBtSWFhcENrcFROSW56WkRHTDNpenp1QkgxazIyOUtGaHhBU0xfcS1uRXZxeExPQnFPaGVBLS1NUDFvODNoYkVqY09SaHhYZndFTEZqM2JRdzlVbGZR");
+            request.AddHeader("authorization", "Basic TEST");
             request.AddHeader("Content-Type", "application/x-www-form-urlencoded");
             request.AlwaysMultipartFormData = true;
             IRestResponse response = client.Execute(request);
