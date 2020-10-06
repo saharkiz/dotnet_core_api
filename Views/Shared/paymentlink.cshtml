@@ -2,14 +2,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>VConnect</title>
+    <title>Payment Link</title>
     <meta name="description" content="Login - Register Template">
     <meta name="author" content="TheV">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/1.7.8/css/bootstrap.css" />
-    <link type="text/css" rel="stylesheet" href="https://source.zoom.us/1.7.8/css/react-select.css" />
-    <meta name="format-detection" content="telephone=no">
+
     <style>
         input:focus,
         textarea:focus,
@@ -112,6 +110,56 @@
             -moz-animation: alert-anim 1s cubic-bezier(1, -0.01, 0, 0.99);
             animation: alert-anim 1s cubic-bezier(1, -0.01, 0, 0.99);
         }
+
+table { 
+    border-spacing: 0px;
+    border-collapse: collapse;
+     width: 100%
+}
+
+.theadtable {
+  background-color: #005581;
+  color: #fff;
+  text-align: left;
+  font-size: 100%;
+  width:50%;  
+}
+table tr.head th {
+    padding-left: 3px;
+  border-bottom: 1px solid #807D78;
+  font-size:12pt;
+      padding-top: 8px;
+  padding-bottom: 8px;
+
+}
+
+table td {
+  border: 1px dashed #B0ACA6;
+  padding: 3px;
+}
+
+table tr td:first-child,
+table tr th:first-child {
+    border-left: 0;
+}
+
+table tr td:last-child,
+table tr th:last-child {
+    border-right: 0;
+}
+
+td.total {
+  font-weight: bold;
+}
+
+td.alright{
+  text-align: right;
+}
+
+tr.topborder {
+  border-top: 1px solid #807D78;
+}
+
         @@media only screen and (max-width: 600px) {
             .thev-signin-background {
                 background: url(thev-login-sm-bg.svg);
@@ -137,80 +185,62 @@
 <body style="margin:0px !important; background-color: #DDDDDD; font-family: Arial, Helvetica, sans-serif;">
     <header id="header_Logout" style=" background-color: #00A6CE !important; height: 30px; margin: 0px !important;
     position: fixed; top: 0; right: 0; left: 0; z-index: 1030;">
+    </header>
     <div class="alert">
-        Zoom Host
+        @ViewBag.msg
     </div>
-    <section class="parent" style="height: 100% !important;">
+    <section class="parent thev-signin-background" style="height: 100% !important;">
         <div class="" style="padding-top:70px; text-align: center; width: 100%;">
-                <div style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
-                     <form id="meeting_form" style="margin:10px;">
-                            <label>Host your Zoom Meeting</label><br/>
-                             <button type="submit" class="btn btn-primary" id="join_meeting">Join</button>
-                             <br/><br/>
-                              <a class="btn" href="/log/zoom">
-                                    Join a meeting as a Viewer
-                              </a>
-                     </form>
+
+            <h3><strong>Payment Invoice</strong></h3>
+
+                <p style="padding:5px 30px 30px 30px; max-width: 500px; text-align: center;; margin:auto">
+                    @ViewBag.payfor
+                </p>
+                <div
+                    style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
+                    <form action="/Log/pay" method="post" style="margin:10px;">
+                        <p style="font-size: 12px;">
+                            
+                        </p>
+                        <table>
+                            <tr>
+                                <td class="theadtable">Invoice Number</td>
+                                <td>@ViewBag.invnumber</td>
+                            </tr>
+                            <tr>
+                                <td class="theadtable">Invoice Date</td>
+                                <td>@ViewBag.invdate</td>
+                            </tr>
+                            <tr>
+                                <td class="theadtable">Sent To</td>
+                                <td>@ViewBag.invperson</td>
+                            </tr>
+                            <tr>
+                                <td class="theadtable">Amount (USD)</td>
+                                <td>@ViewBag.invamountusd USD</td>
+                            </tr>
+                            <tr>
+                                <td class="theadtable">Amount (MYR)</td>
+                                <td>@ViewBag.invamountmyr MYR</td>
+                            </tr>
+                            <tr>
+                                <td class="theadtable" colspan="2">Description</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><strong>@ViewBag.description</strong></td>
+                            </tr>
+                        </table>
+                        <br/><br/>
+                        <input type="hidden" value="@ViewBag.url" name="returnurl" />
+                        <input type="hidden" value="@ViewBag.email" name="email" />
+                        <input type="hidden" value="@ViewBag.invnumber" name="token" />
+                        
+                        <button id="btnpay" class="btn-secondary" type="submit">Pay Invoice</button>
+                    </form>
                 </div>
         </div>
     </section>
-</header>
-
-    <script src="https://source.zoom.us/1.7.8/lib/vendor/react.min.js"></script>
-    <script src="https://source.zoom.us/1.7.8/lib/vendor/react-dom.min.js"></script>
-    <script src="https://source.zoom.us/1.7.8/lib/vendor/redux.min.js"></script>
-    <script src="https://source.zoom.us/1.7.8/lib/vendor/redux-thunk.min.js"></script>
-    <script src="https://source.zoom.us/1.7.8/lib/vendor/jquery.min.js"></script>
-    <script src="https://source.zoom.us/1.7.8/lib/vendor/lodash.min.js"></script>
-
-    <script src="https://source.zoom.us/zoom-meeting-1.7.8.min.js"></script>
-    <script>
-        (function(){
-
-	console.log('checkSystemRequirements');
-	console.log(JSON.stringify(ZoomMtg.checkSystemRequirements()));
-
-    ZoomMtg.preLoadWasm();
-    ZoomMtg.prepareJssdk();
-
-    document.getElementById('join_meeting').addEventListener('click', function(e){
-
-        e.preventDefault();
-        jQuery("#header_Logout").hide();
-        if(!this.form.checkValidity()){
-            alert("Enter Name and Meeting Number");
-            return false;
-        }
-        ZoomMtg.init({
-            leaveUrl: 'https://api.the-v.net/log',
-            success: function () {
-                ZoomMtg.join(
-                    {
-                        meetingNumber: '@ViewBag.meetingNumber',
-                        userName: '@ViewBag.userName',
-                        userEmail: '@ViewBag.userName',
-                        signature: '@ViewBag.token',
-                        apiKey: '@ViewBag.apiKey',
-                        passWord: '@ViewBag.passWord',
-                        success: function(res){
-                            $('#nav-tool').hide();
-                            console.log('join meeting success');
-                        },
-                        error: function(res) {
-                            console.log(res);
-                        }
-                    }
-                );
-            },
-            error: function(res) {
-                console.log(res);
-            }
-        });
-
-    });
-
-})();
-    </script>
 </body>
 
 </html>
