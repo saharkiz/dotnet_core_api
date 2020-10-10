@@ -41,7 +41,7 @@ namespace myvapi.Controllers
             {
                 ViewBag.msg = "";
             }
-            ViewBag.url = "https://vtube.net?q=vtube";
+            ViewBag.url = appSettings.Value.URL + "?q=vtube";
             if (url != null)
             {
                 ViewBag.url = url;
@@ -96,49 +96,52 @@ namespace myvapi.Controllers
         public IActionResult Post([FromForm]FormModel model)
         {
             try{
-                SqlParameter[] param = {
-                    new SqlParameter("@email",model.email.ToString()),
-                    new SqlParameter("@password",model.password.ToString()),
-                };
-
-                var tokenuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
-                //"select top 1 id from view_members where isQnetUser is not null and email=@email and NonEncPassword=@password", param);
-                "select top 1 id from view_members where email=@email and Password=@password", param);
-
-                if (tokenuser.Length < 1){
-                    return Redirect("/log?msg=Username or password is incorrect&return=" + model.returnurl.ToString());
-                    //return BadRequest(new { message = "Username or password is incorrect" });
-                }
-                SqlParameter[] parama = {
-                    new SqlParameter("@id",tokenuser.ToString()),
-                };
-
-                SqlHelper.ExecuteStatement(appSettings.Value.VMembers, 
-                "UPDATE view_members SET last_login_date=GETDATE()  where id=@id", parama);
-
-                gameHelper.givePoint(appSettings.Value.VShop, "login", "You logged-in", tokenuser, tokenuser, string.Format("Vtube.net {0} login", model.email.ToString()));
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(appSettings.Value.Secret);
-                var tokenDescriptor = new SecurityTokenDescriptor
+                using (MD5 md5Hash = MD5.Create())
                 {
-                    Subject = new ClaimsIdentity(new Claim[] 
+                    string hash = SqlHelper.GetMd5Hash(md5Hash, model.password.ToString());
+                    SqlParameter[] param = {
+                        new SqlParameter("@email",model.email.ToString()),
+                        new SqlParameter("@password",hash),
+                    };
+                    
+                    var tokenuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                    "select top 1 id from view_members where email=@email and passwd=@password", param);
+
+                    if (tokenuser.Length < 1){
+                        return Redirect("/log?msg=Username or password is incorrect&return=" + model.returnurl.ToString());
+                        //return BadRequest(new { message = "Username or password is incorrect" });
+                    }
+                    SqlParameter[] parama = {
+                        new SqlParameter("@id",tokenuser.ToString()),
+                    };
+
+                    SqlHelper.ExecuteStatement(appSettings.Value.VMembers, 
+                    "UPDATE view_members SET SharingDetection='vtube.net',last_login_date=GETDATE()  where id=@id", parama);
+
+                    gameHelper.givePoint(appSettings.Value.VShop, "login", "You logged-in", tokenuser, tokenuser, string.Format("Vtube.net {0} login", model.email.ToString()));
+                    var tokenHandler = new JwtSecurityTokenHandler();
+                    var key = Encoding.ASCII.GetBytes(appSettings.Value.Secret);
+                    var tokenDescriptor = new SecurityTokenDescriptor
                     {
-                        new Claim(ClaimTypes.Name, "UID")
-                    }),
-                    Expires = DateTime.UtcNow.AddDays(7),
-                    Audience = "ats",
-                    Issuer = "aresh",
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-                };
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                var finalToken = tokenHandler.WriteToken(token);
+                        Subject = new ClaimsIdentity(new Claim[] 
+                        {
+                            new Claim(ClaimTypes.Name, "UID")
+                        }),
+                        Expires = DateTime.UtcNow.AddDays(7),
+                        Audience = "ats",
+                        Issuer = "aresh",
+                        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    };
+                    var token = tokenHandler.CreateToken(tokenDescriptor);
+                    var finalToken = tokenHandler.WriteToken(token);
 
-                var output = new {ver=3.141, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
-                if (!model.returnurl.Contains("?"))
-                {
-                    model.returnurl = model.returnurl + "?";
+                    var output = new {ver=3.141, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
+                    if (!model.returnurl.Contains("?"))
+                    {
+                        model.returnurl = model.returnurl + "?";
+                    }
+                    return Redirect(model.returnurl + "&token="+ finalToken + "&aud="+tokenuser);
                 }
-                return Redirect(model.returnurl + "&token="+ finalToken + "&aud="+tokenuser);
             }
             catch(Exception)
             {
@@ -165,7 +168,7 @@ namespace myvapi.Controllers
                 message.To.Add(model.email.ToLower());
                 message.Subject = "Forgot password: Reset here";
                 string bodycontent = System.IO.File.ReadAllText(Environment.CurrentDirectory + "/Views/email/forgot_password.html");
-                bodycontent = bodycontent.Replace("$$$_Link_$$$","https://api.the-v.net/log/change_password?token=" + tokenuser);
+                bodycontent = bodycontent.Replace("$$$_Link_$$$",appSettings.Value.APIURL + "/log/change_password?token=" + tokenuser);
                 bodycontent = bodycontent.Replace("$$$_Name_$$$",model.email.ToString());
                 message.Body = bodycontent;
                 message.IsBodyHtml = true;
@@ -233,7 +236,25 @@ namespace myvapi.Controllers
 
             return View("forgot_username");
         }
+        [HttpPost("changepassword")]
+        [AllowAnonymous]
+        public IActionResult changepassword([FromForm]FormModel model)
+        {
+            using (MD5 md5Hash = MD5.Create())
+            {
+                string hash = SqlHelper.GetMd5Hash(md5Hash, model.password.ToString());
+                SqlParameter[] param = {
+                    new SqlParameter("@token",model.token.ToString()),
+                    new SqlParameter("@pass",hash),
+                };
 
+                SqlHelper.ExecuteStatement(appSettings.Value.VMembers, 
+                "UPDATE t_members SET passwd=@pass where id=@token", param);
+
+                ViewBag.msg = "Password changed successfully.";
+                return View("change_password");
+            }
+        }
  #region QNET Activate       
         [HttpGet("activate")]
         [AllowAnonymous]
@@ -248,7 +269,7 @@ namespace myvapi.Controllers
                 "select top 1 id from t_members where token=@token", param);
 
                 if (tokenuser.Length < 1){
-                    return Redirect("/log?msg=Your membership has Expired&return=https://vtube.net?q=vtube");
+                    return Redirect("/log?msg=Your membership has Expired&return="+appSettings.Value.URL + "?q=vtube");
                 }
                 SqlParameter[] parama = {
                     new SqlParameter("@id",tokenuser.ToString()),
@@ -275,7 +296,7 @@ namespace myvapi.Controllers
 
                 var output = new {ver=3.141, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
                 //return Ok(output);
-                return Redirect("https://vtube.net?token="+ finalToken + "&aud="+tokenuser);
+                return Redirect(appSettings.Value.URL + "?token="+ finalToken + "&aud="+tokenuser);
             }
             catch(Exception)
             {
@@ -304,7 +325,7 @@ namespace myvapi.Controllers
         public ActionResult enableauthenticator()
         {
             
-                string email = "";
+                string email = "saharkiz@yahoo.com";
                 string unformattedKey = TimeSensitivePassCode.GeneratePresharedKey();
                 string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
                 string temp = string.Format(
@@ -388,7 +409,7 @@ namespace myvapi.Controllers
             string token = zoomHelper.GenerateToken (apiKey, apiSecret, meetingNumber, ts, role);
 
             ViewBag.apiKey = apiKey;
-            ViewBag.passWord = ""; //meeting password
+            ViewBag.passWord = "nomoreFear"; //meeting password
             ViewBag.token = token;
             ViewBag.meetingNumber = meetingNumber;
             ViewBag.userName = id;

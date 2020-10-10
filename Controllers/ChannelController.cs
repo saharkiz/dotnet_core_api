@@ -7,6 +7,7 @@ using myvapi.Utility;
 using System.Data;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 
 
 namespace myvapi.Controllers
@@ -17,11 +18,34 @@ namespace myvapi.Controllers
     public class ChannelController : ControllerBase //for Web API ONLY
     {
         private readonly IOptions<MySettingsModel> appSettings; 
-        public ChannelController(IOptions<MySettingsModel> app)  
+        private readonly IMemoryCache _cache;
+        public ChannelController(IOptions<MySettingsModel> app, IMemoryCache memoryCache)  
         {  
             appSettings = app;  
+            _cache = memoryCache; 
         } 
-
+        [HttpGet("reset")]
+        [AllowAnonymous]
+        public ActionResult GetReset()
+        {
+            var cacheEntriesCollectionDefinition = typeof(MemoryCache).GetProperty("EntriesCollection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var cacheEntriesCollection = cacheEntriesCollectionDefinition.GetValue(_cache) as dynamic;
+            List<Microsoft.Extensions.Caching.Memory.ICacheEntry> cacheCollectionValues = new List<Microsoft.Extensions.Caching.Memory.ICacheEntry>();
+            foreach (var cacheItem in cacheEntriesCollection)
+            { 
+                Microsoft.Extensions.Caching.Memory.ICacheEntry cacheItemValue = cacheItem.GetType().GetProperty("Value").GetValue(cacheItem, null);
+                cacheCollectionValues.Add(cacheItemValue);
+            }
+            var items = new List<string>();
+            foreach (var item in cacheCollectionValues)
+            {
+                var methodInfo = item.GetType().GetProperty("Key");
+                var val = methodInfo.GetValue(item);
+                items.Add(val.ToString());
+                _cache.Remove(val.ToString());
+            }
+            return Ok(items);
+        }
         [HttpGet]
         [AllowAnonymous]
         public ActionResult Get()
@@ -33,114 +57,154 @@ namespace myvapi.Controllers
         [AllowAnonymous]
         public ActionResult Get(int page, int count)
         {
-            try{
-                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
-                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
-
-                SqlParameter[] param = {
-                    new SqlParameter("@start",start),
-                    new SqlParameter("@end",end),
-                };
-
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"SELECT * FROM 
-                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* FROM View_ChannelList_API where privacy='public') c
-                    WHERE rowNumber between @start and @end
-                    order by rowNumber", param);
-                return Ok(lst);
-            }
-            catch(Exception)
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "channel.page." + page;
+            if (!_cache.TryGetValue(CacheEntry, out lst))
             {
-                return BadRequest(new {error = "Request Terminated!" });
+                try{
+                    int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                    int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                    SqlParameter[] param = {
+                        new SqlParameter("@start",start),
+                        new SqlParameter("@end",end),
+                    };
+
+                     lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"SELECT * FROM 
+                        (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* FROM View_ChannelList_API where privacy='public') c
+                        WHERE rowNumber between @start and @end
+                        order by rowNumber", param);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                    _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                    return Ok(lst);
+                }
+                catch(Exception)
+                {
+                    return BadRequest(new {error = "Request Terminated!" });
+                }
             }
+            return Ok(lst);
         }
 ///Channel Details for All ID 
         [HttpGet("{channelid}")]
         [AllowAnonymous]
         public ActionResult Get(string channelid)
         {
-            try{
-                SqlParameter[] param = {
-                    new SqlParameter("@idorname",channelid),
-                };
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"select TOP 1 * from View_ChannelList_API where id=@idorname", param);
-                return Ok(lst);
-            }
-            catch(Exception)
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "channel.detail." + channelid;
+            if (!_cache.TryGetValue(CacheEntry, out lst))
             {
-                return BadRequest();
+                try{
+                    SqlParameter[] param = {
+                        new SqlParameter("@idorname",channelid),
+                    };
+                     lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"select TOP 1 * from View_ChannelList_API where id=@idorname", param);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                    _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                    return Ok(lst);
+                }
+                catch(Exception)
+                {
+                    return BadRequest();
+                }
             }
+            return Ok(lst);
         }
 ///Channel Details for All Name
         [HttpGet("name/{channelname}")]
         [AllowAnonymous]
         public ActionResult GetByName(string channelname)
         {
-            try{
-                SqlParameter[] param = {
-                    new SqlParameter("@idorname",channelname),
-                };
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"select TOP 1 * from View_ChannelList_API where name=@idorname", param);
-                return Ok(lst);
-            }
-            catch(Exception)
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "channel.detail." + channelname;
+            if (!_cache.TryGetValue(CacheEntry, out lst))
             {
-                return BadRequest();
+                try{
+                    SqlParameter[] param = {
+                        new SqlParameter("@idorname",channelname),
+                    };
+                    lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"select TOP 1 * from View_ChannelList_API where name=@idorname", param);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                    _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                    return Ok(lst);
+                }
+                catch(Exception)
+                {
+                    return BadRequest();
+                }
             }
+            return Ok(lst);
         }
 //Channels of Moderator
         [HttpGet("moderator/{page}/{count}")]
         [AllowAnonymous]
         public ActionResult moderator(int page, int count)
         {
-            try{
-                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
-                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
-
-                SqlParameter[] param = {
-                    new SqlParameter("@start",start),
-                    new SqlParameter("@end",end),
-                };
-
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"SELECT * FROM 
-                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* FROM View_ChannelList_API WHERE user_id = 'AF3102AD-09C6-4E44-9872-2C3695F5A1F6') c
-                    WHERE rowNumber between @start and @end
-                    order by rowNumber", param);
-                return Ok(lst);
-            }
-            catch(Exception)
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "channel.moderator." + page;
+            if (!_cache.TryGetValue(CacheEntry, out lst))
             {
-                return BadRequest(new {error = "Request Terminated!" });
+                try{
+                    int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                    int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                    SqlParameter[] param = {
+                        new SqlParameter("@start",start),
+                        new SqlParameter("@end",end),
+                    };
+
+                     lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"SELECT * FROM 
+                        (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* FROM View_ChannelList_API WHERE user_id = 'AF3102AD-09C6-4E44-9872-2C3695F5A1F6') c
+                        WHERE rowNumber between @start and @end
+                        order by rowNumber", param);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                    _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                    return Ok(lst);
+                }
+                catch(Exception)
+                {
+                    return BadRequest(new {error = "Request Terminated!" });
+                }
             }
+            return Ok(lst);
         }
 //Channels Recommended
         [HttpGet("recommend/{page}/{count}")]
         [AllowAnonymous]
         public ActionResult recommend(int page, int count)
         {
-            try{
-                int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
-                int end = Convert.ToInt32(count) * Convert.ToInt32(page);
-
-                SqlParameter[] param = {
-                    new SqlParameter("@start",start),
-                    new SqlParameter("@end",end),
-                };
-
-                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
-                @"SELECT * FROM 
-                    (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn asc) rowNumber,* FROM View_ChannelList_API where is_recommended=1) c
-                    WHERE rowNumber between @start and @end
-                    order by rowNumber", param);
-                return Ok(lst);
-            }
-            catch(Exception)
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "channel.recommend." + page;
+            if (!_cache.TryGetValue(CacheEntry, out lst))
             {
-                return BadRequest(new {error = "Request Terminated!" });
+                try{
+                    int start = Convert.ToInt32(count) * (Convert.ToInt32(page) - 1) + 1;
+                    int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+
+                    SqlParameter[] param = {
+                        new SqlParameter("@start",start),
+                        new SqlParameter("@end",end),
+                    };
+
+                     lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.Vtube, 
+                    @"SELECT * FROM 
+                        (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn asc) rowNumber,* FROM View_ChannelList_API where is_recommended=1) c
+                        WHERE rowNumber between @start and @end
+                        order by rowNumber", param);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                    _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                    return Ok(lst);
+                }
+                catch(Exception)
+                {
+                    return BadRequest(new {error = "Request Terminated!" });
+                }
             }
+            return Ok(lst);
         }
 ///search channel
         [HttpPost("search/{type}")]

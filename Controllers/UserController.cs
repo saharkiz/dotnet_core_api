@@ -16,7 +16,8 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using MailKit.Net.Smtp;
+
+using System.Security.Cryptography;
 
 namespace myvapi.Controllers
 {
@@ -49,35 +50,40 @@ namespace myvapi.Controllers
                 if (model["issuer"] == null)
                     return BadRequest(new { message = "Invalid Issuer" });
                 
-                SqlParameter[] param = {
-                    new SqlParameter("@email",model["username"].ToString()),
-                    new SqlParameter("@password",model["password"].ToString()),
-                };
-
-                var tokenuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
-                "select top 1 id from view_members where isQnetUser is not null and email=@email and NonEncPassword=@password", param);
-
-                if (tokenuser.Length < 1)
-                    return BadRequest(new { message = "Username or password is incorrect" });
-
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(appSettings.Value.Secret);
-                var tokenDescriptor = new SecurityTokenDescriptor
+                using (MD5 md5Hash = MD5.Create())
                 {
-                    Subject = new ClaimsIdentity(new Claim[] 
-                    {
-                        new Claim(ClaimTypes.Name, "UID")
-                    }),
-                    Expires = DateTime.UtcNow.AddDays(7),
-                    Audience = model["audience"].ToString(),
-                    Issuer = model["issuer"].ToString(),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-                };
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                var finalToken = tokenHandler.WriteToken(token);
+                    string hash = SqlHelper.GetMd5Hash(md5Hash, model["password"].ToString());
+                    
+                    SqlParameter[] param = {
+                        new SqlParameter("@email",model["username"].ToString()),
+                        new SqlParameter("@password",hash),
+                    };
 
-                var output = new {ver=3.141, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
-                return Ok(output);
+                    var tokenuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                    "select top 1 id from view_members where isQnetUser is not null and email=@email and passwd=@password", param);
+
+                    if (tokenuser.Length < 1)
+                        return BadRequest(new { message = "Username or password is incorrect" });
+
+                    var tokenHandler = new JwtSecurityTokenHandler();
+                    var key = Encoding.ASCII.GetBytes(appSettings.Value.Secret);
+                    var tokenDescriptor = new SecurityTokenDescriptor
+                    {
+                        Subject = new ClaimsIdentity(new Claim[] 
+                        {
+                            new Claim(ClaimTypes.Name, "UID")
+                        }),
+                        Expires = DateTime.UtcNow.AddDays(7),
+                        Audience = model["audience"].ToString(),
+                        Issuer = model["issuer"].ToString(),
+                        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    };
+                    var token = tokenHandler.CreateToken(tokenDescriptor);
+                    var finalToken = tokenHandler.WriteToken(token);
+
+                    var output = new {ver=3.1415, auth_time= DateTime.Now.Ticks, token_type="Bearer", access_token=finalToken, aud=tokenuser, lang="en"};
+                    return Ok(output);
+                }
             }
             catch(Exception)
             {

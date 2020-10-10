@@ -583,15 +583,16 @@ namespace myvapi.Controllers
                 using (MD5 md5Hash = MD5.Create())
                 {
                     string hash = SqlHelper.GetMd5Hash(md5Hash, model["newpassword"].ToString());
+                    string hash2 = SqlHelper.GetMd5Hash(md5Hash, model["oldpassword"].ToString());
                     SqlParameter[] param = {
                         new SqlParameter("@user_id",user),
-                        new SqlParameter("@oldpassword",model["oldpassword"].ToString()),
-                        new SqlParameter("@newpassword",model["newpassword"].ToString()),
+                        new SqlParameter("@oldpassword",hash2),
+                        //new SqlParameter("@newpassword",model["newpassword"].ToString()),
                         new SqlParameter("@pass",hash)
                     };
 
                     var lst = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
-                    @"UPDATE t_members SET passwd=@pass, NonEncPassword=@newpassword where NonEncPassword=@oldpassword and userid=@userid", param);
+                    @"UPDATE t_members SET passwd=@pass where passwd=@oldpassword and userid=@userid", param);
                     return Ok(lst);
                 }
             }

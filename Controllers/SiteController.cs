@@ -75,12 +75,12 @@ namespace myvapi.Controllers
                 }
                 else
                 {
-                    return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg");
+                    return Redirect(appSettings.Value.URL + "/Resources/vtube/images/UserAvatar(80x80px).jpg");
                 }
             }
             catch(Exception)
             {
-                return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg");
+                return Redirect(appSettings.Value.URL + "/Resources/vtube/images/UserAvatar(80x80px).jpg");
             }
         }
         [HttpGet("channel")]
@@ -118,13 +118,13 @@ namespace myvapi.Controllers
                     }
                     else
                     {
-                        return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg");
+                        return Redirect(appSettings.Value.URL + "/Resources/vtube/images/UserAvatar(80x80px).jpg");
                     }
                 }
             }
             catch(Exception)
             {
-                return Redirect("https://vtube.net/Resources/vtube/images/UserAvatar(80x80px).jpg?exception=1");
+                return Redirect(appSettings.Value.URL + "/Resources/vtube/images/UserAvatar(80x80px).jpg?exception=1");
             }
         }
         [HttpGet("video/{width}/{height}")]
@@ -166,7 +166,7 @@ namespace myvapi.Controllers
         [AllowAnonymous]
         public IActionResult fix([FromQuery(Name = "id")] string id)
         {
-            dynamic json = SimpleJson.DeserializeObject(brightcove.brightcove_token());
+            dynamic json = SimpleJson.DeserializeObject(brightcove.brightcove_token(appSettings.Value.Brightcove));
             dynamic videoDetails = SimpleJson.DeserializeObject(brightcove.brightcove_images(id, json.access_token));
             int iposition = 0;
             if (videoDetails.poster.sources.Count > 1){
@@ -200,7 +200,7 @@ namespace myvapi.Controllers
                 if (imagedata.Length > 5)
                 {
                     
-                    dynamic json = SimpleJson.DeserializeObject(brightcove.brightcove_token());
+                    dynamic json = SimpleJson.DeserializeObject(brightcove.brightcove_token(appSettings.Value.Brightcove));
                     dynamic videoDetails = SimpleJson.DeserializeObject(brightcove.brightcove_images(id, json.access_token));
 
                     SqlParameter[] paramVid = {
@@ -246,7 +246,7 @@ namespace myvapi.Controllers
             string data = SimpleJson.SerializeObject(dict);
 
             IDictionary<string, object> filevid = new Dictionary<string, object>();
-            filevid.Add("url","https://api.the-v.net/upload?id="+ lst[0]["FileName"]);
+            filevid.Add("url",appSettings.Value.APIURL + "/upload?id="+ lst[0]["FileName"]);
 
             IDictionary<string, object> dictVid = new Dictionary<string, object>();
             dictVid.Add("master", filevid);
@@ -274,7 +274,7 @@ namespace myvapi.Controllers
         private async Task<string> upload_Video(string uplo, string data)
         {
             string tokencall = await Task.Run(() => {
-                return brightcove.brightcove_token();
+                return brightcove.brightcove_token(appSettings.Value.Brightcove);
             });
             
             dynamic json = SimpleJson.DeserializeObject(tokencall);
