@@ -191,6 +191,27 @@ namespace myvapi.Utility
                 }
             }
         }
+        public static DataTable ToDataTable(List<Dictionary<string, object>> list)
+        {
+            DataTable result = new DataTable();
+            if (list.Count == 0)
+                return result;
+
+            var columnNames = list.SelectMany(dict=>dict.Keys).Distinct();
+            result.Columns.AddRange(columnNames.Select(c=>new DataColumn(c)).ToArray());
+            foreach (Dictionary<string,object> item in list)
+            {
+                var row = result.NewRow();
+                foreach (var key in item.Keys)
+                {
+                    row[key] = item[key];
+                }
+
+                result.Rows.Add(row);
+            }
+
+            return result;
+        }
         ///Methods to get values of 
         ///individual columns from sql data reader
         #region Get Values from Sql Data Reader
@@ -273,6 +294,8 @@ namespace myvapi.Utility
 
     public class MySettingsModel  
     {  
+        public string URL{ get; set;}
+        public string APIURL {get; set;}
         public string DbConnection { get; set; }  
         public string Vtube { get; set; }  
         public string VShop { get; set; }  
@@ -283,6 +306,7 @@ namespace myvapi.Utility
         public string SMTPUsername { get; set; }  
         public string SMTPPassword { get; set; }  
         public string Secret { get; set; }  
+        public string Brightcove { get; set; }  
 
 
         public string Merchant { get; set; }  
