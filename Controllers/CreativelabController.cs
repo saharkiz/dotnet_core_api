@@ -23,7 +23,7 @@ namespace myvapi.Controllers
         {  
             appSettings = app;  
         } 
-
+#region lists
         [HttpGet("jo/list")]
         [AllowAnonymous]
         public ActionResult JoList()
@@ -58,5 +58,119 @@ namespace myvapi.Controllers
                 return BadRequest(new {error = "Request Terminated!" });
             }
         }
+        [HttpGet("news/list")]
+        [AllowAnonymous]
+        public ActionResult NewsList()
+        {
+            try{
+                SqlParameter[] param = {
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                "select * from t_news order by runningNum desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+        [HttpGet("events/list")]
+        [AllowAnonymous]
+        public ActionResult EventsList()
+        {
+            try{
+                SqlParameter[] param = {
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                "select * from t_events order by runningNum desc", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+#endregion
+
+#region get
+        
+        [HttpGet("jo/{id}")]
+        [AllowAnonymous]
+        public ActionResult JoGet(string id)
+        {
+            try{
+                SqlParameter[] param = {
+                        new SqlParameter("@id",id),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.CreativeLab, 
+                "select * from t_jo where id=@id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+        [HttpGet("task/{id}")]
+        [AllowAnonymous]
+        public ActionResult TaskGet(string id)
+        {
+            try{
+                SqlParameter[] param = {
+                        new SqlParameter("@id",id),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.CreativeLab, 
+                "select * from t_tasks where id=@id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+        [HttpGet("news/{id}")]
+        [AllowAnonymous]
+        public ActionResult NewsGet(string id)
+        {
+            try{
+                SqlParameter[] param = {
+                        new SqlParameter("@id",id),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                "select * from t_news where id=@id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+        [HttpGet("events/{id}")]
+        [AllowAnonymous]
+        public ActionResult EventsGet(string id)
+        {
+            try{
+                SqlParameter[] param = {
+                        new SqlParameter("@id",id),
+                };
+
+                var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
+                "select * from t_events where id=@id", param);
+                return Ok(lst);
+            }
+            catch(Exception)
+            {
+                return BadRequest(new {error = "Request Terminated!" });
+            }
+        }
+
+#endregion
+    
+    
     }
 }

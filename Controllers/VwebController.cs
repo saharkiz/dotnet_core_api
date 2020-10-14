@@ -468,30 +468,34 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpPost("search/{mytype}")]
+        [HttpGet("search/{mytype}")]
         [AllowAnonymous]
-        public ActionResult get_Search([FromQuery(Name = "keyword")] String keyword, string mytype)
+        public ActionResult getSearch([FromQuery(Name = "keyword")] String keyword, string mytype)
         {
-            /*string searchWord = keyword.Replace(",", "").Replace("'", "").Replace("’", "");
-            SqlCommand cmd = new SqlCommand("sp_SearchResult"); //returns only IDs of specific Search
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.Add("@SearchKey", SqlDbType.VarChar).Value = searchWord;
-            cmd.Parameters.Add("@Type", SqlDbType.VarChar).Value = mytype;
-
-            DataSet ds = general.getSet(cmd);
-            if (ds.Tables.Count > 0)
+            if (keyword.Length < 4)
             {
-                SqlCommand cm = new SqlCommand("sp_Results"); //gets actual values
-                cm.CommandType = CommandType.StoredProcedure;
-                cm.Parameters.Add("@Type", SqlDbType.VarChar).Value = mytype;
-                cm.Parameters.Add("@table", SqlDbType.Structured).Value = ds.Tables[0];
-                cm.Parameters.Add("@orderby", SqlDbType.VarChar).Value = "latest";
-                DataSet dsResult = general.getSet(cm);
-                return returnCheck(dsResult);
+                return Ok(new {error = "Keyword length must be greater than 4." });
+            }
+            string searchWord = keyword.Replace(",", "").Replace("'", "").Replace("’", "");
+            
+            var lst = new List<Dictionary<string, object>>();
+            SqlParameter[] param = {
+                                new SqlParameter("@SearchKey",searchWord),
+                                new SqlParameter("@Type",mytype),
+                            };
+            lst = SqlHelper.ExecuteProcedureReturnData(appSettings.Value.VShop,"sp_SearchResult",param);
+            if (lst.Count > 0)
+            {
+                SqlParameter[] param2 = {
+                                new SqlParameter("@Type",mytype),
+                                new SqlParameter("@table",SqlHelper.ToDataTable(lst)),
+                                new SqlParameter("@orderby","latest"),
+                            };
+                var freslut =  SqlHelper.ExecuteProcedureReturnData(appSettings.Value.VShop,"sp_Results",param2);
+                return Ok(freslut);
             }
 
-            return general.TextToJson("No Search results.");*/
-            return BadRequest(new {error = "Request Terminated!" });
+            return Ok(new {error = "No Search results." });
         }
     }
 }
