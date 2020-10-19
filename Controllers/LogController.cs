@@ -17,6 +17,7 @@ using System.Net.Mail;
 
 using System.Security.Cryptography;
 using System.Collections;
+using RestSharp;
 //sudo dotnet publish --configuration Release
 namespace myvapi.Controllers
 {
@@ -91,6 +92,23 @@ namespace myvapi.Controllers
             ViewBag.token = token;
             return View("change_password");
         }
+        [HttpGet("register")]
+        [AllowAnonymous]
+        public ActionResult GetRegister()
+        {
+            if (Request.QueryString.ToString().Length > 0)
+            {
+                ViewBag.msg = "SIGN UP";
+            }
+            else
+            {
+                ViewBag.msg = "";
+            }
+            return View("signup");
+        }
+        
+        
+        
         [HttpPost]
         [AllowAnonymous]
         public IActionResult Post([FromForm]FormModel model)
@@ -148,7 +166,6 @@ namespace myvapi.Controllers
                 return BadRequest(new { message = "Invalid Parameters" });
             }
         }
-
         [HttpPost("forgotpassword")]
         [AllowAnonymous]
         public ActionResult forgotpassword([FromForm]FormModel model)
@@ -255,6 +272,47 @@ namespace myvapi.Controllers
                 return View("change_password");
             }
         }
+        [HttpPost("signup")]
+        [AllowAnonymous]
+        public IActionResult signup([FromForm]FormModel model)
+        {
+            try{
+                    var client = new RestClient(@"https://www.google.com/recaptcha/api/siteverify?secret="+ appSettings.Value.SecretKey +"&response=" + model.token.ToString());
+                    client.Timeout = -1;
+                    var request = new RestRequest(Method.POST);
+                    IRestResponse response = client.Execute(request);
+                    dynamic captcha = SimpleJson.DeserializeObject(response.Content);
+                    if (captcha.success == true)
+                    {
+                        using (MD5 md5Hash = MD5.Create())
+                        {
+                            string hash = SqlHelper.GetMd5Hash(md5Hash, model.password.ToString());
+                            
+                            SqlParameter[] param = {
+                                new SqlParameter("@email",model.email.ToString()),
+                                new SqlParameter("@pass",hash),
+                                new SqlParameter("@name",model.name.ToString()),
+                                new SqlParameter("@country",model.country.ToString()),
+                                new SqlParameter("@yearjoined",model.yearjoined.ToString()),
+                                new SqlParameter("@irid",model.irid.ToString()),
+                                new SqlParameter("@groupname",model.groupname.ToString()),
+                            };
+                            ViewBag.msg = "ERROR::::::::Success. An activation email has been sent to your email address.";
+                            return View("signup");
+                        }
+                    }
+                    else{
+                        ViewBag.msg = "Captcha Validation Failed.";
+                        return View("signup");
+                    }
+            }
+            catch(Exception)
+            {
+                ViewBag.msg = "Captcha Not Validated.";
+                return View("signup");
+            }
+        }
+ 
  #region QNET Activate       
         [HttpGet("activate")]
         [AllowAnonymous]
@@ -607,6 +665,11 @@ namespace myvapi.Controllers
         public string irid { get; set; }
         public string returnurl { get; set; }
         public string token { get; set; }
+
+        public string name { get; set; }
+        public string country { get; set; }
+        public string yearjoined { get; set; }
+        public string groupname { get; set; }
 
         public string qrcode{ get; set; }
         public string hash{ get; set; }

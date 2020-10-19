@@ -61,9 +61,9 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpGet("newscategory/{count}/{page}/{language}/{category}")]
+        [HttpGet("newscategory/{count}/{page}/{language}")]
         [AllowAnonymous]
-        public ActionResult getOldsNewsCategory(string count, string page, string language, string category)
+        public ActionResult getOldsNewsCategory([FromQuery(Name = "category")] String category, string count, string page, string language)
         {
             var lst = new List<Dictionary<string, object>>();
             string CacheEntry = "website.newscat." + page + language + category;
@@ -93,9 +93,9 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpGet("newsmarket/{count}/{page}/{language}/{market}")]
+        [HttpGet("newsmarket/{count}/{page}/{language}")]
         [AllowAnonymous]
-        public ActionResult getOldsNewsMarket(string count, string page, string language, string market)
+        public ActionResult getOldsNewsMarket([FromQuery(Name = "market")] String market, string count, string page, string language)
         {
             var lst = new List<Dictionary<string, object>>();
             string CacheEntry = "website.newsmarket." + page + language + market;
@@ -126,9 +126,9 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpGet("newscountry/{count}/{page}/{language}/{country}")]
+        [HttpGet("newscountry/{count}/{page}/{language}")]
         [AllowAnonymous]
-        public ActionResult getOldsNewsCountry(string count, string page, string language, string country)
+        public ActionResult getOldsNewsCountry([FromQuery(Name = "country")] String country, string count, string page, string language)
         {
             var lst = new List<Dictionary<string, object>>();
             string CacheEntry = "website.newscountry." + page + language + country;
@@ -191,9 +191,9 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpGet("eventscountry/{count}/{page}/{language}/{country}")]
+        [HttpGet("eventscountry/{count}/{page}/{language}")]
         [AllowAnonymous]
-        public ActionResult getOldsEventsCountry(string count, string page, string language, string country)
+        public ActionResult getOldsEventsCountry([FromQuery(Name = "country")] String country, string count, string page, string language)
         {
             var lst = new List<Dictionary<string, object>>();
             string CacheEntry = "website.eventscountry." + page + language + country;
@@ -224,9 +224,9 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpGet("eventsmarket/{count}/{page}/{language}/{market}")]
+        [HttpGet("eventsmarket/{count}/{page}/{language}")]
         [AllowAnonymous]
-        public ActionResult getOldsEventsMarket(string count, string page, string language, string market)
+        public ActionResult getOldsEventsMarket([FromQuery(Name = "market")] String market, string count, string page, string language)
         {
             var lst = new List<Dictionary<string, object>>();
             string CacheEntry = "website.eventscountry." + page + language + market;
@@ -257,9 +257,9 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
-        [HttpGet("eventscategory/{count}/{page}/{language}/{category}")]
+        [HttpGet("eventscategory/{count}/{page}/{language}")]
         [AllowAnonymous]
-        public ActionResult getOldsEventsCategory(string count, string page, string language, string category)
+        public ActionResult getOldsEventsCategory([FromQuery(Name = "category")] String category, string count, string page, string language)
         {
             var lst = new List<Dictionary<string, object>>();
             string CacheEntry = "website.eventscountry." + page + language + category;
