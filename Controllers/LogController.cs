@@ -32,11 +32,11 @@ namespace myvapi.Controllers
         } 
         [HttpGet]
         [AllowAnonymous]
-        public ActionResult Get([FromQuery(Name = "return")] string url)
+        public ActionResult Get([FromQuery(Name = "return")] string url,[FromQuery(Name = "msg")] string msg)
         {
             if (Request.QueryString.ToString().Length > 0)
             {
-                ViewBag.msg = "Username/Password Incorrect! Try Again!";
+                ViewBag.msg = msg + ". Try Again!";
             }
             else
             {
@@ -106,9 +106,52 @@ namespace myvapi.Controllers
             }
             return View("signup");
         }
+        [HttpGet("activation")]
+        [AllowAnonymous]
+        public ActionResult GetActivation([FromQuery(Name = "activation")] string activation)
+        {
+            if (Request.QueryString.ToString().Length > 0)
+            {
+                ViewBag.msg = "SIGN UP ACTIVATION";
+                ViewBag.token = activation;
+            }
+            else
+            {
+                ViewBag.msg = "";
+            }
+            return View("activation");
+        }
         
         
-        
+        [HttpPost("activate")]
+        [AllowAnonymous]
+        public ActionResult activateSignup([FromForm]FormModel model)
+        {
+            string finalmsg = "";
+            //validate email
+            using (MD5 md5Hash = MD5.Create())
+            {
+                string hash = SqlHelper.GetMd5Hash(md5Hash, model.email.ToString());
+                string token = model.token.ToString();
+
+                if (hash == token)
+                {
+                    SqlParameter[] param = {
+                        new SqlParameter("@email",model.email.ToString()),
+                    };
+
+                    var tokenuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                    "UPDATE t_Members SET is_approved=1 where email=@email", param);
+
+                    finalmsg = "You account is now Active. Sign in to access your Account.";
+                }
+                else
+                {
+                    finalmsg = "Your email does not match the registered Email";
+                }
+            }
+            return Redirect("/log?msg="+ finalmsg);
+        }
         [HttpPost]
         [AllowAnonymous]
         public IActionResult Post([FromForm]FormModel model)
@@ -123,9 +166,18 @@ namespace myvapi.Controllers
                     };
                     
                     var tokenuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
-                    "select top 1 id from view_members where email=@email and passwd=@password", param);
+                    "select top 1 id from view_members where email=@email and passwd=@password and is_approved=1", param);
 
                     if (tokenuser.Length < 1){
+                        SqlParameter[] paramactiveuser = {
+                            new SqlParameter("@email",model.email.ToString()),
+                            new SqlParameter("@password",hash),
+                        };
+                        var activeuser = SqlHelper.ExecuteStatementReturnString(appSettings.Value.VMembers, 
+                        "select top 1 id from view_members where email=@email and passwd=@password and is_approved=0", paramactiveuser);
+                         if (activeuser.Length > 1){
+                            return Redirect("/log?msg=Account is not Active. Please Activate your account&return=" + model.returnurl.ToString());
+                         }
                         return Redirect("/log?msg=Username or password is incorrect&return=" + model.returnurl.ToString());
                         //return BadRequest(new { message = "Username or password is incorrect" });
                     }
@@ -163,7 +215,8 @@ namespace myvapi.Controllers
             }
             catch(Exception)
             {
-                return BadRequest(new { message = "Invalid Parameters" });
+                return Redirect("/log");
+                //return BadRequest(new { message = "Invalid Parameters" });
             }
         }
         [HttpPost("forgotpassword")]
@@ -242,9 +295,9 @@ namespace myvapi.Controllers
                     client.Send(message);
                     ViewBag.msg = "Username Sent to your Registered Email";
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    ViewBag.msg = "User Not found. Contact vbox@the-v.net " + ex.ToString();
+                    ViewBag.msg = "User Not found. Contact vbox@the-v.net";
                 }
             }
             else{
@@ -277,10 +330,10 @@ namespace myvapi.Controllers
         public IActionResult signup([FromForm]FormModel model)
         {
             try{
-                    var client = new RestClient(@"https://www.google.com/recaptcha/api/siteverify?secret="+ appSettings.Value.SecretKey +"&response=" + model.token.ToString());
-                    client.Timeout = -1;
+                    var gclient = new RestClient(@"https://www.google.com/recaptcha/api/siteverify?secret="+ appSettings.Value.SecretKey +"&response=" + model.token.ToString());
+                    gclient.Timeout = -1;
                     var request = new RestRequest(Method.POST);
-                    IRestResponse response = client.Execute(request);
+                    IRestResponse response = gclient.Execute(request);
                     dynamic captcha = SimpleJson.DeserializeObject(response.Content);
                     if (captcha.success == true)
                     {
@@ -290,14 +343,54 @@ namespace myvapi.Controllers
                             
                             SqlParameter[] param = {
                                 new SqlParameter("@email",model.email.ToString()),
-                                new SqlParameter("@pass",hash),
-                                new SqlParameter("@name",model.name.ToString()),
-                                new SqlParameter("@country",model.country.ToString()),
-                                new SqlParameter("@yearjoined",model.yearjoined.ToString()),
-                                new SqlParameter("@irid",model.irid.ToString()),
-                                new SqlParameter("@groupname",model.groupname.ToString()),
+                                new SqlParameter("@nonencpassword",hash),
+                                new SqlParameter("@password",hash),
+                                new SqlParameter("@fullname",model.name.ToString()),
+                                new SqlParameter("@Country",model.country.ToString()),
+                                new SqlParameter("@Year",model.yearjoined.ToString()),
+                                new SqlParameter("@IRID",model.irid.ToString()),
+                                new SqlParameter("@Group",model.groupname.ToString()),
+                                new SqlParameter("@facebook_id",""),
+                                new SqlParameter("@googleId",""),
+                                new SqlParameter("@liveId",""),
+                                new SqlParameter("@yahooId",""),
                             };
-                            ViewBag.msg = "ERROR::::::::Success. An activation email has been sent to your email address.";
+                            var result = SqlHelper.ExecuteProcedureReturnString(appSettings.Value.VMembers, "sp_Register", param);
+                            if (result == "Thank you")
+                            {
+                                string bodycontent = System.IO.File.ReadAllText(Environment.CurrentDirectory + "/Views/email/signup_activation.html");
+                                bodycontent = bodycontent.Replace("$$$_Name_$$$",model.name.ToString());
+
+                                string tempURL = "https://api.the-v.net/log/activation"+ "?activation=" + SqlHelper.GetMd5Hash(md5Hash, model.email.ToString());
+                                bodycontent = bodycontent.Replace("$$$_Link_$$$",tempURL.ToString());
+                                
+                                MailAddress fromEmail = new MailAddress("vbox@the-v.net", "The-V");  
+                                MailMessage message = new MailMessage();
+                                message.From = fromEmail;
+                                message.To.Add(model.email.ToString().ToLower());
+                                message.Subject = "The-V Account Activation";
+                                message.Body = bodycontent;
+                                message.IsBodyHtml = true;
+                                
+                                SmtpClient client = new SmtpClient();
+                                client.UseDefaultCredentials = true;
+                                client.Port = appSettings.Value.SMTPPort;
+                                client.Host = appSettings.Value.SMTPServer;
+                                client.EnableSsl = true;
+                                try{
+                                    client.Send(message);
+                                    ViewBag.msg = "Success. An activation email has been sent to your email address.";
+                                }
+                                catch (Exception)
+                                {
+                                    ViewBag.msg = "User Not found. Contact vbox@the-v.net";
+                                }
+                                
+                            }
+                            else
+                            {
+                                ViewBag.msg = "Error: " + result;
+                            }
                             return View("signup");
                         }
                     }
@@ -358,7 +451,9 @@ namespace myvapi.Controllers
             }
             catch(Exception)
             {
-                return BadRequest(new { message = "Invalid Parameters" });
+
+                return Redirect("/log");
+                //return BadRequest(new { message = "Invalid Parameters" });
             }
         }
 #endregion
@@ -606,9 +701,9 @@ namespace myvapi.Controllers
                 }
                 return Redirect(BaseString + "?" + AqueryString);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ViewBag.msg = "RHB Error for Token: " + model.token.ToString() + "<br/>" + ex.ToString();
+                ViewBag.msg = "RHB Error for Token: " + model.token.ToString() + "<br/>";
                 return View("paymentlink");
             }
             

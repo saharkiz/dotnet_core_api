@@ -126,6 +126,39 @@ namespace myvapi.Controllers
             }
             return Ok(lst);
         }
+        [HttpGet("newsmood/{count}/{page}/{language}")]
+        [AllowAnonymous]
+        public ActionResult getOldsNewsMood([FromQuery(Name = "mood")] String mood, string count, string page, string language)
+        {
+            var lst = new List<Dictionary<string, object>>();
+            string CacheEntry = "website.newsmood." + page + language + mood;
+            if (!_cache.TryGetValue(CacheEntry, out lst))
+            {
+                try{
+                        int start = 1;
+                        int end = Convert.ToInt32(count) * Convert.ToInt32(page);
+                        SqlParameter[] param = {
+                                new SqlParameter("@start",start),
+                                new SqlParameter("@end",end),
+                                new SqlParameter("@mood",mood),
+                                new SqlParameter("@lang",language),
+                            };
+                        lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, @"
+                            SELECT * FROM 
+                            (SELECT ROW_NUMBER() OVER (ORDER BY CreatedOn desc) rowNumber,* from view_news  where Language=@lang) p
+                            WHERE status <> 'Inactive' and language=@lang and MOOD=@mood and rowNumber between @start and @end
+                            order by rowNumber", param);
+                        var cacheEntryOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3));
+                        _cache.Set(CacheEntry, lst, cacheEntryOptions);
+                        return Ok(lst);
+                    }
+                    catch(Exception)
+                    {
+                        return BadRequest(new {error = "Request Terminated!" });
+                    }
+            }
+            return Ok(lst);
+        }
         [HttpGet("newscountry/{count}/{page}/{language}")]
         [AllowAnonymous]
         public ActionResult getOldsNewsCountry([FromQuery(Name = "country")] String country, string count, string page, string language)

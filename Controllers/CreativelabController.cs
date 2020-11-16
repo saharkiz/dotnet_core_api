@@ -320,7 +320,7 @@ namespace myvapi.Controllers
                 };
 
                 var lst = SqlHelper.ExecuteStatementDataTable(appSettings.Value.VShop, 
-                "select * from t_news where id=@id", param);
+                "select * from t_news where runningnum=@id", param);
                 return Ok(lst);
             }
             catch(Exception)

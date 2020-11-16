@@ -88,17 +88,18 @@ namespace myvapi.Controllers
         public ActionResult Get(string vid)
         {
             var lst = new List<Dictionary<string, object>>();
+
+            SqlParameter[] paramTemp = {
+                new SqlParameter("@idorname",vid),
+            };
+
+            SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
+            @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
+            
             string CacheEntry = "video.detail." + vid;
             if (!_cache.TryGetValue(CacheEntry, out lst))
             {
                 try{
-                    SqlParameter[] paramTemp = {
-                        new SqlParameter("@idorname",vid),
-                    };
-
-                    SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
-                    @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
-
                     SqlParameter[] param = {
                         new SqlParameter("@idorname",vid),
                     };
@@ -121,17 +122,18 @@ namespace myvapi.Controllers
         public ActionResult GetVidLanguage(string language, string vid)
         {
             var lst = new List<Dictionary<string, object>>();
+
+            SqlParameter[] paramTemp = {
+                new SqlParameter("@idorname",vid),
+            };
+
+            SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
+            @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
+
             string CacheEntry = "video.detail." + vid + language;
             if (!_cache.TryGetValue(CacheEntry, out lst))
             {
                 try{
-                    SqlParameter[] paramTemp = {
-                        new SqlParameter("@idorname",vid),
-                    };
-
-                    SqlHelper.ExecuteStatement(appSettings.Value.Vtube, 
-                    @"UPDATE vs_entry_details SET Plays = isnull(Plays,0) + 1, Views= isnull(Plays,0) + 1  WHERE Id = @idorname", paramTemp);
-
                     SqlParameter[] param = {
                         new SqlParameter("@idorname",vid),
                     };
