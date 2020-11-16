@@ -153,18 +153,15 @@
    <section class="parent thev-signin-background" style="height: 100% !important;">
         <div class="" style="padding-top: 100px; text-align:center; width: 100%; ">
 
-            <h3><strong>Change Password?</strong></h3>
+            <h3><strong>Signup Activation?</strong></h3>
 
-                <p style="padding:5px 30px 0px 30px; margin-left: 5px;  margin-right: 5x; text-align: center;">Enter your new Password.</p>
+                <p style="padding:5px 30px 0px 30px; margin-left: 5px;  margin-right: 5x; text-align: center;">Enter your Email address.</p>
                 <div
                     style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
-                    <form action="/log/changepassword" method="post" style="margin:10px;">
+                    <form action="/log/activate" method="post" style="margin:10px;">
                         <input type="hidden" value="@ViewBag.token" name="token" />
-                        <input type="password" class="txt-input" id="txtpass"
-                            placeholder="New Password" name="password" required autocomplete="off"><br>
-                        <br>
-                        <input type="password" class="txt-input" id="txtpass2"
-                            placeholder="Confirm New Password" name="password2" required autocomplete="off"><br>
+                        <input type="text" class="txt-input" id="txtpass"
+                            placeholder="Email Address" name="email" required autocomplete="off"><br>
                         <br>
 
                         <button id="btnLogin" class="btn-secondary" type="submit">Submit</button>

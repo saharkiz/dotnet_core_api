@@ -7,7 +7,7 @@
     <meta name="author" content="TheV">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
+    <link rel="shortcut icon" href="https://vtube.net/Resources/vtube/faveicon.ico" type="image/x-icon">
     <style>
         input:focus,
         textarea:focus,
@@ -149,7 +149,7 @@
                 </p>
                 <div
                     style="background:#E8E8E8; max-width: 500px; text-align: center; border-radius: 0.3rem; margin:15px;padding-top:20px;padding-bottom:20px; margin: auto;">
-                    <form action="/Log" method="post" style="margin:10px;">
+                    <form action="/log" method="post" style="margin:10px;">
                         <input type="hidden" value="@ViewBag.url" name="returnurl" />
                         <input type="text" class="txt-input" id="txtEmail" placeholder="E-mail" name="email" required
                             autocomplete="off"><br>
@@ -162,7 +162,7 @@
                         </p>
                         <button id="btnLogin" class="btn-secondary" type="submit">Login</button>
                         <p style="font-size: 12px;">New to Vtube.net?</p>
-                        <a class="btn-signup" href="https://the-v.net/register?referer=vtube.net">
+                        <a class="btn-signup" href="/log/register?referer=vtube.net">
                             Signup
                         </a>
                     </form>
